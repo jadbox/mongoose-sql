@@ -9,6 +9,7 @@
   "author": "Jonathan Dunlap",
   "license": "ISC",
   "dependencies": {
+    "lodash": "^4.17.3",
     "mongoose": "^4.7.5",
     "sequelize": "^3.28.0"
   }
