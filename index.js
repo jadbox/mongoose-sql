@@ -41,6 +41,9 @@ class Schema {
     const vUnique = _(params).pickBy(x=>x.unique)
       .mapValues(x => ({unique: x.unique})).value();
 
+    const vRequired = _(params).pickBy(x=>x.required)
+      .mapValues(x => ({ validate: { notNull: true, notEmpty: true } })).value();
+
     // const keys = Object.keys(params);
     // Collections without schema ref
     const vATypes = _(params).pickBy(isArrayType)
@@ -59,19 +62,23 @@ class Schema {
       .pickBy(x=>x[0].default)
       .mapValues(x => ({defaultValue: x[0].default})).value();
 
-    const v = _.merge(vTypes, vTypes, vATypes, vACTypes, vADefaults, vUnique);
+    const v = _.merge(vTypes, vTypes, vATypes, vACTypes, vADefaults, vUnique, vRequired);
     console.log(v);
   }
 };
 
 class Model {
   constructor(params) {
+    this.sqlm = params; // change to build
   }
   find(params) {
-
+    return sqlm.findAll();
   }
   findByID(id) {
-
+    return sqlm.findByID(id)
+  }
+  remove() {
+    return sqlm.destroy();
   }
 };
 
