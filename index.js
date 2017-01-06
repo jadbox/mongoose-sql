@@ -3,7 +3,8 @@ const Sequelize = require('sequelize');
 const _ = require('lodash');
 
 const e = process.env;
-let DEBUG = 1;
+const DEBUG = 1;
+// const DEBUG_SEQUELIZE = false;
 let sequelize;
 
 const models = {};
@@ -16,8 +17,11 @@ const typeMap = {
   , [Number]: Sequelize.FLOAT
   , [Date]: Sequelize.DATE
   , [Boolean]: Sequelize.BOOLEAN
+  , [Array]: Sequelize.JSONB // untyped array
+  , [Object]: Sequelize.JSONB // untyped object
 }
 
+// For Debugging
 const typeMap2 = {
   [String]: 'Sequelize.STRING'
   , [Number]: 'Sequelize.FLOAT'
