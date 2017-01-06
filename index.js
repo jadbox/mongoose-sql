@@ -11,14 +11,14 @@ const models = {};
 const monSchema = mongoose.Schema
 //const MID = mongoose.Schema.ObjectId;
 
-const typeMap2 = {
+const typeMap = {
   [String]: Sequelize.STRING
   , [Number]: Sequelize.FLOAT
   , [Date]: Sequelize.DATE
   , [Boolean]: Sequelize.BOOLEAN
 }
 
-const typeMap = {
+const typeMap2 = {
   [String]: 'Sequelize.STRING'
   , [Number]: 'Sequelize.FLOAT'
   , [Date]: 'Sequelize.DATE'
@@ -86,26 +86,31 @@ class Schema {
 };
 
 class Query {
-  constructor(model, params) {
+  constructor(model, params, byID) {
     this.model = model;
     this.params = params || {};
     this.ops = [];
+    this.method = byID ? 'findByID' : 'findAll';
   }
   sort(field) {
     this.ops.push({ order: [[field, 'DESC']] })
   }
   exec(cb) {
     this.params = _.merge(this.params, ...ops);
-    this.model.findAll(this.params).then(cb);
+    if(DEBUG) console.log(this.method, this.params);
+    this.model[this.method](this.params).then(x => 
+      cb(null, x)
+    );
   }
 }
 
 class Model {
   constructor(name, schema) {
+    //this.sqlname = _.snakeCase(name); // todo?
     this.name = name;
     if(DEBUG) console.log('-- parsing ' + name + ' --');
     this.schema = schema.parse(); // change to build
-    this.refsUnlinked = _.map(this.schema.refs, x => x.ref);
+    this.refsUnlinked = _.filter(_.map(this.schema.refs, x => x.ref), ref => ref !== name);
     this.refs = _.merge({}, this.schema.refs);
     delete this.schema.refs;
 
@@ -115,31 +120,43 @@ class Model {
   // Creates the Sequelize models
   _sqlize(models) {
     // sequelize model
+    if(!sequelize) {
+      console.warn('sequelize not instanced');
+      return;
+    }
+
+    if(DEBUG) console.log('sequelize model', this.name)
+    const sqlm = this.sqlm = sequelize.define(this.name, this.schema);
+    sqlm.sync().then(x=>console.log(this.name, 'sync'));
 
     _(this.refs).pickBy(x=>x.rel==='many')
-      .map( (k,v) => {
-        // hasMany( models[v.ref] )
-        return k;
-      }).value();
+      .map( (v,k) => {
+        if(DEBUG) console.log(this.name, 'hasMany ', v.ref);
+        sqlm.hasMany( models[v.ref].sqlm );
+      }
+      ).value();
 
     _(this.refs).pickBy(x=>x.rel==='one')
-      .map( (k,v) => {
-        // hasOne( models[v.ref] )
-        return k;
+      .map( (v,k) => {
+        if(DEBUG) console.log(this.name, 'hasOne ', v.ref);
+        sqlm.hasOne( models[v.ref].sqlm )
       }).value();
 
   }
+  get loaded() {
+    return !!this.sqlm;
+  }
   find(params) {
-    return sqlm.findAll();
+    return new Query(this, params, false);
   }
   findByID(id) {
-    return sqlm.findByID(id)
+    return new Query(this, id, true);
   }
-  remove() {
-    return sqlm.destroy();
+  remove(cb) {
+    return sqlm.destroy().then(x=>cb()).catch(cb);
   }
-  save() {
-    return sqlm.save();
+  save(cb) {
+    return sqlm.save().then(x=>cb()).catch(cb);
   }
 };
 
@@ -153,17 +170,21 @@ function modelNew(name, schema) {
 
 // Check for dependency models added
 function waitOn(model) {
-  let ks = model.refsUnlinked;
-  if(ks.length === 0) {
+  const ks = model.refsUnlinked;
+
+  const loadedSQLModels = _.keys(_.pickBy(models, x=>x.loaded));
+  const loadedModels = _.intersection(ks, loadedSQLModels);
+  
+  console.log(model.name, model.refsUnlinked)
+  model.refsUnlinked = _.difference(model.refsUnlinked, loadedSQLModels);
+
+  if(model.refsUnlinked.length === 0) {
     if(DEBUG) console.log(model.name + ' has all deps');
     model._sqlize(models);
     return;
   }
-  const loaded = _.intersection(ks, _.keys(models));
-  
-  model.refsUnlinked = ks = _.difference(model.refsUnlinked, loaded);
 
-  if(DEBUG) console.log(model.name + ' loaded', loaded, 'wating on', ks);
+  if(DEBUG) console.log(model.name + ' loaded', loadedModels, 'wating on', model.refsUnlinked);
   setTimeout(waitOn, 100, model);
 }
 
