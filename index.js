@@ -64,7 +64,7 @@ class Schema {
     // Default value conversion (non-collection)
     const vDefaults = _(params).pickBy(x=>x.default)
       .mapValues(x => {
-        if(x.default === Date.now) return {defaultValue: sequelize.fn('NOW') }; // https://github.com/sequelize/sequelize/issues/645
+        if(x.default === Date.now) return { allowNull: false, defaultValue: Sequelize.NOW } //defaultValue: sequelize.fn('NOW') }; // https://github.com/sequelize/sequelize/issues/645
         return {defaultValue: x.default}
       }).value();
 
@@ -95,7 +95,7 @@ class Schema {
     const vLowerCase = _(params).pickBy(x=>x.lowercase)
       .mapValues(x => ({validate: { isLowercase: true }})).value();
 
-    const v = _.merge(vTypes, vATypes, vADefaults, vUnique, vRequired, vLowerCase);
+    const v = _.merge(vTypes, vATypes, vDefaults, vADefaults, vUnique, vRequired, vLowerCase);
     const refs = _.merge(hasOneType, hasManyTypes);
     v.refs = refs;
     //console.log(v);
