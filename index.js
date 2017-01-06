@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const Sequelize = require('sequelize');
 const _ = require('lodash');
 
+const e = process.env;
+let DEBUG = 1;
+let sequelize;
+
 const models = {};
 
 const monSchema = mongoose.Schema
@@ -81,17 +85,32 @@ class Schema {
   }
 };
 
+class Query {
+  constructor(model, params) {
+    this.model = model;
+    this.params = params || {};
+    this.ops = [];
+  }
+  sort(field) {
+    this.ops.push({ order: [[field, 'DESC']] })
+  }
+  exec(cb) {
+    this.params = _.merge(this.params, ...ops);
+    this.model.findAll(this.params).then(cb);
+  }
+}
+
 class Model {
   constructor(name, schema) {
     this.name = name;
-    console.log('-- parsing ' + name + ' --');
+    if(DEBUG) console.log('-- parsing ' + name + ' --');
     this.schema = schema.parse(); // change to build
     this.refsUnlinked = _.map(this.schema.refs, x => x.ref);
     this.refs = _.merge({}, this.schema.refs);
     delete this.schema.refs;
 
-    console.log(this.schema);
-    console.log('refs', this.refs);
+    if(DEBUG > 1) console.log(this.schema);
+    if(DEBUG > 1) console.log('refs', this.refs);
   }
   // Creates the Sequelize models
   _sqlize(models) {
@@ -119,9 +138,6 @@ class Model {
   remove() {
     return sqlm.destroy();
   }
-  sort(field) {
-
-  }
   save() {
     return sqlm.save();
   }
@@ -139,7 +155,7 @@ function modelNew(name, schema) {
 function waitOn(model) {
   let ks = model.refsUnlinked;
   if(ks.length === 0) {
-    console.log(model.name + ' has all deps');
+    if(DEBUG) console.log(model.name + ' has all deps');
     model._sqlize(models);
     return;
   }
@@ -147,11 +163,34 @@ function waitOn(model) {
   
   model.refsUnlinked = ks = _.difference(model.refsUnlinked, loaded);
 
-  console.log(model.name + ' loaded', loaded, 'wating on', ks);
-  setTimeout(waitOn, 1000, model);
+  if(DEBUG) console.log(model.name + ' loaded', loaded, 'wating on', ks);
+  setTimeout(waitOn, 100, model);
+}
+
+// Sequelize init
+function init(_sequelize) {
+  if(DEBUG) console.log('sequelize lib init')
+  sequelize = _sequelize
+  
+  if(DEBUG) sequelize.authenticate()
+    .then(x=>console.log('sql connected')
+    , y=>console.log('sql connection error', y));
+}
+
+if(e.PSQL_INIT || true) {
+  init(new Sequelize(
+      e.PSQL_DB || 'test'
+      , e.PSQL_USER || 'jonathan.dunlap'
+      , e.PSQL_PW || ''
+      , {
+        host: e.PSQL_URL || 'localhost',
+        dialect: 'postgres'
+     }
+  ));
 }
 
 module.exports = exports = {
-  Schema: Schema,
-  model: modelNew
+  Schema: Schema
+  , model: modelNew
+  , init: init
 }
