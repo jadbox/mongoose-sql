@@ -5,14 +5,13 @@ const _ = require('lodash');
 const models = {};
 
 const monSchema = mongoose.Schema
-const MID = mongoose.Schema.ObjectId;
+//const MID = mongoose.Schema.ObjectId;
 
 const typeMap2 = {
   [String]: Sequelize.STRING
   , [Number]: Sequelize.FLOAT
   , [Date]: Sequelize.DATE
   , [Boolean]: Sequelize.BOOLEAN
-  , [MID]: Sequelize.JSONB
 }
 
 const typeMap = {
@@ -22,10 +21,9 @@ const typeMap = {
   , [Boolean]: 'Sequelize.BOOLEAN'
   , [Array]: 'Sequelize.JSONB' // untyped array
   , [Object]: 'Sequelize.JSONB' // untyped object
-  , [MID]: 'Sequelize.JSONB' // reference ID
 }
 
-const MID_TYPE = typeMap[MID];
+const ARRAY_OBJ_TYPE = typeMap[Object];
 const isArrayType = x => Array.isArray(x) && x.length !== 0;
 
 class Schema {
@@ -36,6 +34,8 @@ class Schema {
 
   parse() {
     const params = this.def;
+
+    // Translate mongoose field types to sequelizes
     const vTypes = _(params).pickBy(x=>x.type && !x.ref)
       .mapValues(x => ({type:typeMap[x.type]})).value();
 
@@ -57,7 +57,7 @@ class Schema {
     // Collections without schema ref
     const vATypes = _(params).pickBy(isArrayType)
       .pickBy(x => !x[0].ref)
-      .mapValues(x => ({type: MID_TYPE })).value();
+      .mapValues(x => ({type: ARRAY_OBJ_TYPE })).value();
 
     // Collections with schema ref
     const hasManyTypes = _(params).pickBy(isArrayType)
