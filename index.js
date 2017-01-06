@@ -15,6 +15,7 @@ const monSchema = mongoose.Schema
 const typeMap = {
   [String]: Sequelize.STRING
   , [Number]: Sequelize.FLOAT
+  , 'id': Sequelize.INTEGER
   , [Date]: Sequelize.DATE
   , [Boolean]: Sequelize.BOOLEAN
   , [Array]: Sequelize.JSONB // untyped array
@@ -25,6 +26,7 @@ const typeMap = {
 const typeMap2 = {
   [String]: 'Sequelize.STRING'
   , [Number]: 'Sequelize.FLOAT'
+  , 'id': 'Sequelize.INTEGER'
   , [Date]: 'Sequelize.DATE'
   , [Boolean]: 'Sequelize.BOOLEAN'
   , [Array]: 'Sequelize.JSONB' // untyped array
@@ -45,8 +47,17 @@ class Schema {
 
     // Translate mongoose field types to sequelizes
     const vTypes = _(params).pickBy(x=>x.type && !x.ref)
-      .mapValues(x => ({type:typeMap[x.type]})).value();
+      .mapValues(x => ({type:typeMap[x.type]}))
+      .value();
 
+    // PATCH: Convert fields that manually link fieds to Integer instead of FLOAT. Ex: Package.cptPackageId
+    _(vTypes).toPairs()
+      .filter( ([k,v]) => v.type === typeMap[Number] && k.indexOf('Id') > -1)
+      .fromPairs()
+      .mapValues(x=>({type:typeMap.id}))
+      .forEach((v,k) => vTypes[k] = v);
+
+    // Find Has One relations to other objects
     const hasOneType = _(params).pickBy(x=>x.ref)
       .mapValues(x => ({ref:x.ref, rel:'one'})).value();
 
@@ -104,7 +115,7 @@ class Query {
     if(DEBUG) console.log(this.method, this.params);
     this.model[this.method](this.params).then(x => 
       cb(null, x)
-    );
+    ).catch(cb);
   }
 }
 
@@ -131,7 +142,7 @@ class Model {
 
     if(DEBUG) console.log('sequelize model', this.name)
     const sqlm = this.sqlm = sequelize.define(this.name, this.schema);
-    sqlm.sync().then(x=>console.log(this.name, 'sync'));
+    sqlm.sync({force:true}).then(x=>console.log(this.name, 'sync'));
 
     _(this.refs).pickBy(x=>x.rel==='many')
       .map( (v,k) => {
