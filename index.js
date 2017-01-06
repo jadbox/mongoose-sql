@@ -63,7 +63,10 @@ class Schema {
 
     // Default value conversion (non-collection)
     const vDefaults = _(params).pickBy(x=>x.default)
-      .mapValues(x => ({defaultValue: x.default})).value();
+      .mapValues(x => {
+        if(x.default === Date.now) return {defaultValue: sequelize.fn('NOW') }; // https://github.com/sequelize/sequelize/issues/645
+        return {defaultValue: x.default}
+      }).value();
 
     // Get Unique field parameters
     const vUnique = _(params).pickBy(x=>x.unique)
