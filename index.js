@@ -5,7 +5,7 @@ const _ = require('lodash');
 const e = process.env;
 const DEBUG = 1;
 const CONNECT_MONGO = e.CONNECT_MONGO || true;
-const SQLZ_FORCE = false; // delete and recreate sql tables? #caution
+const SQLZ_FORCE = true; // delete and recreate sql tables? #caution
 // const DEBUG_SEQUELIZE = false;
 let sequelize;
 
@@ -19,7 +19,7 @@ const monSchema = mongoose.Schema
 //const MID = mongoose.Schema.ObjectId;
 
 const typeMap = {
-  [String]: Sequelize.STRING
+  [String]: Sequelize.TEXT // Sequelize.STRING
   , [Number]: Sequelize.FLOAT
   , 'id': Sequelize.INTEGER
   , [Date]: Sequelize.DATE
@@ -30,7 +30,7 @@ const typeMap = {
 
 // For Debugging
 const typeMap2 = {
-  [String]: 'Sequelize.STRING'
+  [String]: 'Sequelize.TEXT'
   , [Number]: 'Sequelize.FLOAT'
   , 'id': 'Sequelize.INTEGER'
   , [Date]: 'Sequelize.DATE'
@@ -82,8 +82,9 @@ class Schema {
       .mapValues(x => ({unique: x.unique})).value();
 
     // Get Required field parameters
+    // TODO bug with validate
     const vRequired = _(params).pickBy(x=>x.required)
-      .mapValues(x => ({ validate: { notNull: true, notEmpty: true } })).value();
+      .mapValues(x => ({  })).value(); // , validate: { notNull: true, notEmpty: true }
 
     // Collections without schema ref
     const vATypes = _(params).pickBy(isArrayType)
@@ -201,8 +202,14 @@ class Model {
     _(this.refs).pickBy(x=>x.rel==='many')
       .map( (v,k) => {
         if(DEBUG) console.log(this.name, 'hasMany ', v.ref);
+
+        //
         //console.log(models[v.ref].Model);
-        sqlm.hasMany( getModel(v.ref).Model.sqlm );
+        const other = getModel(v.ref).Model.sqlm;
+        const through = _.upperFirst(_.camelCase(sqlm.name + ' ' + other.name));
+        //throw new Error(through);
+        //sqlm.hasMany(other , { as: k, through } );
+        getModel(v.ref).Model.sqlm.belongsToMany( sqlm, { as: k, through } );
       }
       ).value();
 
@@ -210,7 +217,7 @@ class Model {
       .map( (v,k) => {
         if(DEBUG) console.log(this.name, 'hasOne ', v.ref);
         console.log('models', _.keys(models));
-        sqlm.hasOne( getModel(v.ref).Model.sqlm )
+        sqlm.hasOne( getModel(v.ref).Model.sqlm, { as: k } )
       }).value();
 
   }
@@ -232,7 +239,7 @@ class Model {
   save(vobj, opts) {
     if( !vobj ) throw new Error('vobj is null');
     const all_opts = _.merge(SQLZ_INCLUDE_ALL, opts || {});
-    console.log('saving', _.keysIn(vobj));
+    console.log('saving', _.keysIn(vobj), all_opts);
     return this.sqlm.create(vobj, all_opts);
   }
 };

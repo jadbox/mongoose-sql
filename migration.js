@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const MONGO_CONNECTION = "mongodb://localhost/zps-dev";
 
 const mongoose = require('mongoose');
@@ -25,8 +26,23 @@ function init() {
         console.log('--------');
         if(x.length === undefined) throw new Error('no length');
         setTimeout( __ => {
-            const np = new Package(x[0]);
-            np.save(x => console.log('saved'));
+            const v = x[3].toObject();
+            const vobj = { priority: 10 }; //x[0]
+            
+            delete v.__v;
+            delete v._id;
+            //delete v.segments;
+            //delete v.featureSticker;
+            //delete v.category;
+            //delete v.recommendedPackages;
+            //delete v.influencers;
+            //delete v.zInfluencers;
+            //delete v.videoExamples;
+            const y = _.keysIn(v); //_.pickBy(x[3], _.isFunction);
+            console.log('==',  y, v.priority, v.name);
+            //return;
+            const np = new Package( v, {include:['Category']} );
+            np.save( (e,x) => console.log('saved', e));
         }, 1512);
     })
 }
