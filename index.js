@@ -248,8 +248,9 @@ function modelNew(name, schema) {
 }
 
 // Check for dependency models added
+// TODO: refactor model.Model
 function waitOn(model) {
-  const ks = model.refsUnlinked;
+  const ks = model.Model.refsUnlinked;
 
   const loadedSQLModels = _.keys(_.pickBy(models, x => x.loaded() ));
   console.log('loadedSQLModels', loadedSQLModels);
