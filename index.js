@@ -4,10 +4,16 @@ const _ = require('lodash');
 
 const e = process.env;
 const DEBUG = 1;
+const CONNECT_MONGO = e.CONNECT_MONGO || true;
+const SQLZ_FORCE = false; // delete and recreate sql tables? #caution
 // const DEBUG_SEQUELIZE = false;
 let sequelize;
 
 const models = {};
+const getModel = function(x) {
+  if(!models[x]) throw new Error('Model not loaded: ' + x);
+  return models[x];
+}
 
 const monSchema = mongoose.Schema
 //const MID = mongoose.Schema.ObjectId;
@@ -40,7 +46,10 @@ class Schema {
     // Field type conversion (non-collection)
   constructor(params) {
     this.def = params;
+    if(CONNECT_MONGO) this.mongo = new monSchema(params);
   }
+
+  static get ObjectId() { return mongoose.Schema };
 
   parse() {
     const params = this.def;
@@ -103,11 +112,13 @@ class Schema {
   }
 };
 
+const SQLZ_INCLUDE_ALL = { include: [{ all: true}] };
+// Chain operations on find() and findByID
 class Query {
   constructor(model, params, byID) {
     this.model = model;
     this.params = params || {};
-    this.ops = [];
+    this.ops = [ SQLZ_INCLUDE_ALL ];
     this.method = byID ? 'findByID' : 'findAll';
   }
   sort(field) {
@@ -115,16 +126,51 @@ class Query {
   }
   exec(cb) {
     this.params = _.merge(this.params, ...ops);
-    if(DEBUG) console.log(this.method, this.params);
+    if(DEBUG) console.log('exec', this.method, this.params);
     this.model[this.method](this.params).then(x => 
       cb(null, x)
     ).catch(cb);
   }
 }
 
+// Model instance
+class ModelInstance {
+  constructor(model, vbo) {
+    this.vbo = vbo;
+    this.model = model;
+    //this.sqlz = model.create(vbo);
+  }
+  remove(cb) {
+    return this.model.destroy().then(x=>cb()).catch(cb);
+  }
+  save(cb) {
+    return this.model.save(this.vbo).then(x=>cb()).catch(cb);
+  }
+}
+
+function makeModelDef(name, schema) {
+  if(!_.isObject(schema)) throw new Error('no schema');
+  if(!_.isString(name)) throw new Error('no name');
+
+  const model = new Model(name, schema);
+  const modelType = function(vbo) {
+    return model.create(vbo);
+  }
+
+  const fields = ['find', 'findByID', '_sqlize', 'loaded'];
+  _.forEach(fields, 
+    f => modelType[f] = model[f].bind(model) 
+  );
+  modelType.Model = model;
+
+  return modelType;
+}
+
+// Base model instances
 class Model {
   constructor(name, schema) {
     //this.sqlname = _.snakeCase(name); // todo?
+    this.sqlm = {};
     this.name = name;
     if(DEBUG) console.log('-- parsing ' + name + ' --');
     this.schema = schema.parse(); // change to build
@@ -132,7 +178,7 @@ class Model {
     this.refs = _.merge({}, this.schema.refs);
     delete this.schema.refs;
 
-    if(DEBUG > 1) console.log(this.schema);
+    //if(DEBUG > 1) console.log(this.schema);
     if(DEBUG > 1) console.log('refs', this.refs);
   }
   // Creates the Sequelize models
@@ -144,24 +190,34 @@ class Model {
     }
 
     if(DEBUG) console.log('sequelize model', this.name)
-    const sqlm = this.sqlm = sequelize.define(this.name, this.schema);
-    sqlm.sync({force:true}).then(x=>console.log(this.name, 'sync'));
+    this.sqlm = sequelize.define(this.name, this.schema);
 
+    // Sync model
+    const sqlm = this.sqlm;
+    sqlm.sync({force:SQLZ_FORCE})
+      .then(x => DEBUG && console.log(this.name, 'sync'));
+
+    // Associate models together
     _(this.refs).pickBy(x=>x.rel==='many')
       .map( (v,k) => {
         if(DEBUG) console.log(this.name, 'hasMany ', v.ref);
-        sqlm.hasMany( models[v.ref].sqlm );
+        //console.log(models[v.ref].Model);
+        sqlm.hasMany( getModel(v.ref).Model.sqlm );
       }
       ).value();
 
     _(this.refs).pickBy(x=>x.rel==='one')
       .map( (v,k) => {
         if(DEBUG) console.log(this.name, 'hasOne ', v.ref);
-        sqlm.hasOne( models[v.ref].sqlm )
+        console.log('models', _.keys(models));
+        sqlm.hasOne( getModel(v.ref).Model.sqlm )
       }).value();
 
   }
-  get loaded() {
+  create(vobj) {
+    return new ModelInstance(this, vobj);
+  }
+  loaded() {
     return !!this.sqlm;
   }
   find(params) {
@@ -170,19 +226,24 @@ class Model {
   findByID(id) {
     return new Query(this, id, true);
   }
-  remove(cb) {
-    return sqlm.destroy().then(x=>cb()).catch(cb);
+  remove(vobj) {
+    return this.sqlm.destroy();
   }
-  save(cb) {
-    return sqlm.save().then(x=>cb()).catch(cb);
+  save(vobj, opts) {
+    if( !vobj ) throw new Error('vobj is null');
+    const all_opts = _.merge(SQLZ_INCLUDE_ALL, opts || {});
+    console.log('saving', _.keysIn(vobj));
+    return this.sqlm.create(vobj, all_opts);
   }
 };
 
-// Returns Model
+// Model factor method: returns Model
 function modelNew(name, schema) {
-  const model = new Model(name, schema);
+
+  const model = makeModelDef(name, schema); // new Model(name, schema);
+  if(CONNECT_MONGO && schema.mongo) model.mongo = mongoose.model(name, schema.mongo);
   models[name] = model; // cache it
-  waitOn(model);
+  waitOn(model); // watch for dependent models
   return model;
 }
 
@@ -190,19 +251,21 @@ function modelNew(name, schema) {
 function waitOn(model) {
   const ks = model.refsUnlinked;
 
-  const loadedSQLModels = _.keys(_.pickBy(models, x=>x.loaded));
+  const loadedSQLModels = _.keys(_.pickBy(models, x => x.loaded() ));
+  console.log('loadedSQLModels', loadedSQLModels);
   const loadedModels = _.intersection(ks, loadedSQLModels);
   
-  console.log(model.name, model.refsUnlinked)
-  model.refsUnlinked = _.difference(model.refsUnlinked, loadedSQLModels);
+  // console.log(model.name, model.refsUnlinked)
+  model.Model.refsUnlinked = _.difference(model.Model.refsUnlinked, loadedSQLModels);
 
-  if(model.refsUnlinked.length === 0) {
+  if(model.Model.refsUnlinked.length === 0) {
     if(DEBUG) console.log(model.name + ' has all deps');
     model._sqlize(models);
     return;
   }
 
-  if(DEBUG) console.log(model.name + ' loaded', loadedModels, 'wating on', model.refsUnlinked);
+  if(DEBUG) console.log(model.name + ' loaded', 
+    loadedModels, 'wating on', model.Model.refsUnlinked);
   setTimeout(waitOn, 100, model);
 }
 

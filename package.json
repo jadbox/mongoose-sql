@@ -4,14 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node tests/test.js"
+    "test": "node tests/test.js",
+    "flow": "flow; test $? -eq 0 -o $? -eq 2"
   },
   "author": "Jonathan Dunlap",
   "license": "ISC",
   "dependencies": {
-    "lodash": "^4.17.3",
-    "mongoose": "^4.7.5",
-    "sequelize": "^3.28.0"
+    "lodash": "^4.17.4",
+    "mongoose": "^4.7.6",
+    "sequelize": "^3.29.0"
   },
   "devDependencies": {
     "pg": "^6.1.2"
