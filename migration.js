@@ -33,7 +33,7 @@ function init() {
             delete v._id;
             //delete v.segments;
             //delete v.featureSticker;
-            //delete v.category;
+            delete v.category;
             //delete v.recommendedPackages;
             //delete v.influencers;
             //delete v.zInfluencers;
@@ -41,7 +41,7 @@ function init() {
             const y = _.keysIn(v); //_.pickBy(x[3], _.isFunction);
             console.log('==',  y, v.priority, v.name);
             //return;
-            const np = new Package( v, {include:['Category']} );
+            const np = new Package( v ); //, {include:['Category']}
             np.save( (e,x) => console.log('saved', e));
         }, 1512);
     })

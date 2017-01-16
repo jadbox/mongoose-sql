@@ -108,6 +108,15 @@ class Schema {
     const v = _.merge(vTypes, vATypes, vDefaults, vADefaults, vUnique, vRequired, vLowerCase);
     const refs = _.merge(hasOneType, hasManyTypes);
     v.refs = refs;
+    
+    v.uid = {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true // Automatically gets converted to SERIAL for postgres
+    };
+    v.id = {
+      type: Sequelize.STRING
+    };
     //console.log(v);
     return v;
   }
@@ -201,21 +210,20 @@ class Model {
     // Associate models together
     _(this.refs).pickBy(x=>x.rel==='many')
       .map( (v,k) => {
-        if(DEBUG) console.log(this.name, 'hasMany ', v.ref);
-
         //
         //console.log(models[v.ref].Model);
         const other = getModel(v.ref).Model.sqlm;
         const through = _.upperFirst(_.camelCase(sqlm.name + ' ' + other.name));
         //throw new Error(through);
         //sqlm.hasMany(other , { as: k, through } );
-        getModel(v.ref).Model.sqlm.belongsToMany( sqlm, { as: k, through } );
+        other.belongsToMany( sqlm, { as: k, through } );
+        if(DEBUG) console.log(this.name, 'hasMany ', v.ref, { as: k, through });
       }
       ).value();
 
     _(this.refs).pickBy(x=>x.rel==='one')
       .map( (v,k) => {
-        if(DEBUG) console.log(this.name, 'hasOne ', v.ref);
+        if(DEBUG) console.log(this.name, 'hasOne ', v.ref, { as: k });
         console.log('models', _.keys(models));
         sqlm.hasOne( getModel(v.ref).Model.sqlm, { as: k } )
       }).value();
@@ -239,7 +247,6 @@ class Model {
   save(vobj, opts) {
     if( !vobj ) throw new Error('vobj is null');
     const all_opts = _.merge(SQLZ_INCLUDE_ALL, opts || {});
-    console.log('saving', _.keysIn(vobj), all_opts);
     return this.sqlm.create(vobj, all_opts);
   }
 };
