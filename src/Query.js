@@ -18,4 +18,4 @@ module.exports = class Query {
     if (DEBUG) console.log("exec", this.method, this.params);
     this.model[this.method](this.params).then(x => cb(null, x)).catch(cb);
   }
-}
+};

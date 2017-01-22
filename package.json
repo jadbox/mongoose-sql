@@ -11,6 +11,7 @@
   "author": "Jonathan Dunlap",
   "license": "ISC",
   "dependencies": {
+    "chai": "^3.5.0",
     "knex": "^0.12.6",
     "lodash": "^4.17.4",
     "mocha": "^3.2.0",

@@ -4,8 +4,6 @@ const mongoose = require("mongoose");
 const DEBUG = process.env.DEBUG || 1;
 
 // Type Map from Mongoose
-
-
 module.exports = class Schema {
   // Field type conversion (non-collection)
   constructor(params) {
@@ -16,5 +14,4 @@ module.exports = class Schema {
   static get ObjectId() {
     return null; //mongoose.Schema;
   }
-
-}
+};
