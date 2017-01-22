@@ -1,7 +1,7 @@
 const _ = require("lodash");
 const schema = require("./Schema");
 
-module.exports = { getRelations, parse, sync };
+module.exports = { getRelations, parse, sync, find, findByID, create };
 
 const typeMap = {
   [String]: "string",
@@ -139,9 +139,12 @@ function parse(name, params, knex) {
   //v.props = _(v.props).toPairs().map( ([x, y])=>[_.snakeCase(x),y]).fromPairs().value();;
 
   v.fields = _.keys(v.props);
+  v.fields.push('_id');
+
   v.joins = refs[1];
   v.table = tableName(name);
   v.name = name;
+  v.idField = v.table+'._id';
   
   //v.refs = refs;
 
@@ -180,17 +183,40 @@ function sync(knex, _schema) {
     });
 
      _.forEach(_schema.joins, (v,k) => {
-         console.log('k.ltable', k.ltable)
+         console.log('v.ltable', v.ltable)
          r = r.createTableIfNotExists(v.ltable, function (table) {
              table.increments('_id');
 
-            table.integer(_schema.table+'id').unsigned();
-            table.foreign(_schema.table+'id').references(_schema.table+'._id');
+            table.integer(_schema.table).unsigned();
+            table.foreign(_schema.table).references(_schema.table+'._id');
 
-            table.integer(v.refTable+'id').unsigned()
-            table.foreign(v.refTable+'id').references(v.refTable+'._id');
+            table.integer(k).unsigned();
+            table.foreign(k).references(v.refTable+'._id');
          });
      });
 
     return r;
+}
+
+function find(knex, _schema) {
+    let q = knex.select().from(_schema.table);
+    
+    _.forEach(_schema.joins, (v,k) => {
+        q = q.leftOuterJoin(v.ltable, _schema.idField, v.ltable + '.' + _schema.table);
+    });
+
+    return q;
+}
+
+function findByID(knex, _schema, id) {
+    const q = find(knex, _schema);
+    return q.where('_id', id);
+}
+
+function create(knex, _schema, obj) {
+    const w = _.without(_.keys(obj), ..._schema.fields);
+    console.log(_schema.table + ' removed fields', w)
+    // take only valid fields
+    const filtered = _.omit(obj, ...w);
+    return knex(_schema.table).insert(filtered);
 }

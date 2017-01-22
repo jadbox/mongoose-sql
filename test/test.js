@@ -36,11 +36,42 @@ describe("utils", function() {
   });
 
   // ====================
-  it("finds relative tables", function(d) {
+  it("creates internal schema representation", function(d) {
+    console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
     console.log("parse\n", x);
     const y = mapschema.sync(knex, x).toString();
     console.log("sync\n", y);
+    d()
+  });
+
+  // ====================
+  it("query all", function(d) {
+    console.log("-");
+    const x = mapschema.parse("Package", Models.Package, knex);
+    //console.log("parse\n", x);
+    const y = mapschema.find(knex, x).toString();
+    console.log("find\n", y);
+    d()
+  });
+
+  it("query by id", function(d) {
+    console.log("-");
+    const x = mapschema.parse("Package", Models.Package, knex);
+    //console.log("parse\n", x);
+    const y = mapschema.findByID(knex, x, 0).toString();
+    console.log("findByID\n", y);
+    d()
+  });
+
+  // ====================
+  it("create", function(d) {
+    console.log("-");
+    const x = mapschema.parse("Package", Models.Package, knex);
+    //console.log("parse\n", x);
+    const obj = {name: 123, bar:666, "_id": 1};
+    const y = mapschema.create(knex, x, obj).toString();
+    console.log("create\n", y);
     d()
   });
 });
