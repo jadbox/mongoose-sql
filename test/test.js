@@ -8,25 +8,40 @@ const Models = require("./models").init(Schema);
 
 const mapschema = require("../src/mapschema");
 
-describe("test", function() {
+describe("utils", function() {
+  let knex = require('knex')({client: 'pg'});
+
   it("finds relative tables", function(d) {
     const x = mapschema.getRelations("Package", Models.Package);
-    console.log(x);
-
-    assert.deepEqual(x, {
-      recommendedPackages: {
-        ref: "Package",
-        rel: "many",
-        ltable: "package_recommended_packages"
+    //console.log(x);
+    assert.deepEqual(x, [
+      {
+        category: {ref: "Category", rel: "1",  refTable: "category",},
+        featureSticker: {
+          ref: "Sticker",
+          refTable: "sticker",
+          rel: "1"
+        }
       },
-      featureSticker: {
-        ref: "Sticker",
-        rel: "one",
-        ltable: "package_feature_sticker"
-      },
-      category: {ref: "Category", rel: "one", ltable: "package_category"}
-    });
+      {
+        recommendedPackages: {
+          ref: "Package",
+          refTable: "package",
+          rel: ">1",
+          ltable: "package_recommended_packages"
+        }
+      }
+    ]);
     d();
+  });
+
+  // ====================
+  it("finds relative tables", function(d) {
+    const x = mapschema.parse("Package", Models.Package, knex);
+    console.log("parse\n", x);
+    const y = mapschema.sync(knex, x).toString();
+    console.log("sync\n", y);
+    d()
   });
 });
 /*

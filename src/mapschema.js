@@ -1,7 +1,7 @@
 const _ = require("lodash");
 const schema = require("./Schema");
 
-module.exports = { getRelations, parse };
+module.exports = { getRelations, parse, sync };
 
 const typeMap = {
   [String]: "string",
@@ -15,12 +15,19 @@ const typeMap = {
   [Object]: "jsonb"
 };
 
+const ONE = "1", MANY = ">1";
+
 const ARRAY_OBJ_TYPE = typeMap[Object];
 const isArrayType = x => Array.isArray(x) && x.length !== 0;
 
 // Builds the name of the join table
 function joinTableName(sourceTableName, fieldName) {
-  return _.snakeCase(sourceTableName + " " + fieldName);
+  return _.snakeCase( tableName(sourceTableName) + " " + fieldName);
+}
+
+// Mongoose Model name to SQL table name
+function tableName(sourceTableName) {
+    return _.snakeCase(sourceTableName);
 }
 
 // returns an Array of associations
@@ -29,8 +36,10 @@ function getRelations(name, params) {
     .pickBy(isArrayType)
     .pickBy(x => x[0].ref)
     .mapValues((x, field) => ({
+      //type: 'ref',
       ref: x[0].ref,
-      rel: "many",
+      refTable: tableName(x[0].ref),
+      rel: MANY,
       ltable: joinTableName(name, field)
     }))
     .value();
@@ -39,67 +48,23 @@ function getRelations(name, params) {
   const hasOneType = _(params)
     .pickBy(x => x.ref)
     .mapValues((x, field) => ({
+      //type: 'ref',
       ref: x.ref,
-      rel: "one",
-      ltable: joinTableName(name, field)
+      refTable: tableName(x.ref),
+      rel: ONE
     }))
     .value();
 
-  return _.merge(hasManyTypes, hasOneType);
+  return [hasOneType, hasManyTypes];
 }
 
-function parse(name, table) {
-  /*
-    Person.jsonSchema = {
-  type: 'object',
-  required: ['firstName', 'lastName'],
-
-  properties: {
-    id: {type: 'integer'},
-    parentId: {type: ['integer', 'null']},
-    firstName: {type: 'string', minLength: 1, maxLength: 255},
-    lastName: {type: 'string', minLength: 1, maxLength: 255},
-    age: {type: 'number'},
-
-    // Properties defined as objects or arrays are
-    // automatically converted to JSON strings when
-    // writing to database and back to objects and arrays
-    // when reading from database. To override this
-    // behaviour, you can override the
-    // Person.jsonAttributes property.
-    address: {
-      type: 'object',
-      properties: {
-        street: {type: 'string'},
-        city: {type: 'string'},
-        zipCode: {type: 'string'}
-      }
-    }
-  }
-};
-Person.relationMappings = 
-{
-  pets: {
-    relation: Model.HasManyRelation,
-    // The related model. This can be either a Model
-    // subclass constructor or an absolute file path
-    // to a module that exports one. We use the file
-    // path version in this example to prevent require
-    // loops.
-    modelClass: __dirname + '/Animal',
-    join: {
-      from: 'Person.id',
-      to: 'Animal.ownerId'
-    }
-  },
-*/
-  const params = this.def;
-
+// Makes a clean internal representation to consume
+function parse(name, params, knex) {
   // Translate mongoose field types to sql
   const vTypes = _(params)
     .pickBy(x => x.type && !x.ref)
     .mapValues((x, field) => ({
-      properties: { [field]: { type: typeMap[x.type] } }
+      type: typeMap[x.type]
     }))
     .value();
 
@@ -109,16 +74,16 @@ Person.relationMappings =
     .filter(([ k, v ]) => v.type === typeMap[Number] && k.indexOf("Id") > -1)
     .fromPairs()
     .mapValues(x => ({ type: typeMap.id }))
-    .forEach((v, field) => vTypes.properties[field].type = v);
+    .forEach((v, field) => vTypes[field].type = v);
 
   // Default value conversion (non-collection)
   const vDefaults = _(params)
     .pickBy(x => x.default)
     .mapValues(x => {
       if (x.default === Date.now)
-        return { notNullable: true, defaultTo: knex.fn.now() };
+        return { notNullable: true, default: knex ? knex.fn.now() : '' };
       else
-        return { defaultTo: x.default };
+        return { default: x.default };
     })
     .value();
 
@@ -142,46 +107,11 @@ Person.relationMappings =
     .mapValues(x => ({ type: ARRAY_OBJ_TYPE }))
     .value();
 
-  // Collections with schema ref
-  const hasManyTypes = _(params)
-    .pickBy(isArrayType)
-    .pickBy(x => x[0].ref)
-    .mapValues((x, field) => ({
-      //relation: OModel.HasManyRelation,
-      //modelClass: null,
-      ref: x[0].ref,
-      rel: "many",
-      // for deps
-      //join: {
-      from: name + ".id",
-      //'Animal.ownerId'
-      //}
-      to: x[0].ref + ".id"
-    }))
-    .value();
-
-  // Find Has One relations to other objects
-  const hasOneType = _(params)
-    .pickBy(x => x.ref)
-    .mapValues((x, field) => ({
-      //relation: OModel.HasOneRelation,
-      //modelClass: null,
-      ref: x.ref,
-      rel: "one",
-      // for deps
-      //join: {
-      from: name + ".id",
-      //'Animal.ownerId'
-      //}
-      to: x.ref + ".id"
-    }))
-    .value();
-
   // Defaults on array types
   const vADefaults = _(params)
     .pickBy(isArrayType)
     .pickBy(x => x[0].default)
-    .mapValues(x => ({ defaultTo: x[0].default }))
+    .mapValues(x => ({ default: x[0].default }))
     .value();
 
   // Lowercase restrictions on array types
@@ -189,7 +119,11 @@ Person.relationMappings =
       .pickBy(x => x.lowercase)
       .mapValues(x => ({validate: {isLowercase: true}}))
       .value();*/
-  const v = _.merge(
+
+  const refs = getRelations(name, params);
+  const v = {};
+
+  v.props = _.merge(
     { type: "object" },
     vTypes,
     vATypes,
@@ -197,10 +131,19 @@ Person.relationMappings =
     vADefaults,
     vUnique,
     //,vLowerCase
-    vRequired
+    vRequired,
+    refs[0]
   );
-  const refs = _.merge(hasOneType, hasManyTypes);
-  v.refs = refs;
+
+  // Don't use SQL snakecase in order to preserve field names used by client
+  //v.props = _(v.props).toPairs().map( ([x, y])=>[_.snakeCase(x),y]).fromPairs().value();;
+
+  v.fields = _.keys(v.props);
+  v.joins = refs[1];
+  v.table = tableName(name);
+  v.name = name;
+  
+  //v.refs = refs;
 
   //v.increments = 'id'.primary();
   /*
@@ -212,7 +155,42 @@ Person.relationMappings =
     };
     v.id = {type: Sequelize.STRING};
     */
-  console.log("schema", v);
-  throw new Error("0-");
+  //console.log("schema", v);
+  //throw new Error("0-");
   return v;
+}
+
+function sync(knex, _schema) {
+    let r = knex.schema.createTableIfNotExists(_schema.table, function (table) {
+        table.increments('_id');
+        _.forEach(_schema.props, (v,k) => {
+           // console.log('-', v);
+            let z;
+            if(v.type==="string") z = table.text(k);
+            else if(v.type==="float") z = table.float(k);
+            else if(v.type==="date") z = table.timestamps(k);
+            else if(v.type==="jsonb") z = table.jsonb(k);
+            else if(v.type==="id") z = table.integer(k).unsigned();
+            else if(v.ref) {
+                table.integer(k).unsigned()
+                table.foreign(k).references(v.refTable+'._id');
+            }
+            // todo foreign key link
+        });
+    });
+
+     _.forEach(_schema.joins, (v,k) => {
+         console.log('k.ltable', k.ltable)
+         r = r.createTableIfNotExists(v.ltable, function (table) {
+             table.increments('_id');
+
+            table.integer(_schema.table+'id').unsigned();
+            table.foreign(_schema.table+'id').references(_schema.table+'._id');
+
+            table.integer(v.refTable+'id').unsigned()
+            table.foreign(v.refTable+'id').references(v.refTable+'._id');
+         });
+     });
+
+    return r;
 }
