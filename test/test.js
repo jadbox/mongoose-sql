@@ -9,39 +9,33 @@ const Models = require("./models").init(Schema);
 const mapschema = require("../src/mapschema");
 
 const localPG = {
-  client: 'pg',
+  client: "pg",
   connection: {
-      user: 'jonathan.dunlap',
-      database: 'test',
-      port: 5432,
-      host: 'localhost',
-      password: ''
+    user: "jonathan.dunlap",
+    database: "test",
+    port: 5432,
+    host: "localhost",
+    password: ""
   },
   debug: false,
-  pool: {
-      min: 1,
-      max: 2 
-  }
+  pool: { min: 1, max: 2 }
 };
 
-const noPG = { client: 'pg' };
+const noPG = { client: "pg" };
 
-const connectionParams = localPG; //localPG noPG
+const connectionParams = localPG;
 
+//localPG noPG
 describe("utils", function() {
-  let knex = require('knex')(connectionParams);
+  let knex = require("knex")(connectionParams);
 
   it("finds relative tables", function(d) {
     const x = mapschema.getRelations("Package", Models.Package);
     //console.log(x);
     assert.deepEqual(x, [
       {
-        category: {ref: "Category", rel: "1",  refTable: "category",},
-        featureSticker: {
-          ref: "Sticker",
-          refTable: "sticker",
-          rel: "1"
-        }
+        category: { ref: "Category", rel: "1", refTable: "category" },
+        featureSticker: { ref: "Sticker", refTable: "sticker", rel: "1" }
       },
       {
         recommendedPackages: {
@@ -60,15 +54,15 @@ describe("utils", function() {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
     console.log("parse\n", x);
-    const y = mapschema.sync(knex, x)
+    const y = mapschema.sync(knex, x);
     const y1 = y.toString();
     console.log("sync\n", y1);
-    y.then(x=>{
-      console.log('sync done', JSON.stringify(x));
+    y.then(x => {
+      console.log("sync done", JSON.stringify(x));
       d();
     });
   });
-/*
+  /*
   // ====================
   it("query all", function(d) {
     console.log("-");

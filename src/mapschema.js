@@ -22,12 +22,12 @@ const isArrayType = x => Array.isArray(x) && x.length !== 0;
 
 // Builds the name of the join table
 function joinTableName(sourceTableName, fieldName) {
-  return _.snakeCase( tableName(sourceTableName) + " " + fieldName);
+  return _.snakeCase(tableName(sourceTableName) + " " + fieldName);
 }
 
 // Mongoose Model name to SQL table name
 function tableName(sourceTableName) {
-    return _.snakeCase(sourceTableName);
+  return _.snakeCase(sourceTableName);
 }
 
 // returns an Array of associations
@@ -55,7 +55,7 @@ function getRelations(name, params) {
     }))
     .value();
 
-  return [hasOneType, hasManyTypes];
+  return [ hasOneType, hasManyTypes ];
 }
 
 // Makes a clean internal representation to consume
@@ -63,9 +63,7 @@ function parse(name, params, knex) {
   // Translate mongoose field types to sql
   const vTypes = _(params)
     .pickBy(x => x.type && !x.ref)
-    .mapValues((x, field) => ({
-      type: typeMap[x.type]
-    }))
+    .mapValues((x, field) => ({ type: typeMap[x.type] }))
     .value();
 
   // PATCH: Convert fields that manually link fieds to Integer instead of FLOAT. Ex: Package.cptPackageId
@@ -81,7 +79,7 @@ function parse(name, params, knex) {
     .pickBy(x => x.default)
     .mapValues(x => {
       if (x.default === Date.now)
-        return { notNullable: true, default: knex ? knex.fn.now() : '' };
+        return { notNullable: true, default: knex ? knex.fn.now() : "" };
       else
         return { default: x.default };
     })
@@ -119,7 +117,6 @@ function parse(name, params, knex) {
       .pickBy(x => x.lowercase)
       .mapValues(x => ({validate: {isLowercase: true}}))
       .value();*/
-
   const refs = getRelations(name, params);
   const v = {};
 
@@ -136,17 +133,15 @@ function parse(name, params, knex) {
 
   // Don't use SQL snakecase in order to preserve field names used by client
   //v.props = _(v.props).toPairs().map( ([x, y])=>[_.snakeCase(x),y]).fromPairs().value();;
-
   v.fields = _.keys(v.props);
-  v.fields.push('_id');
+  v.fields.push("_id");
 
   v.joins = refs[1];
   v.table = tableName(name);
   v.name = name;
-  v.idField = v.table+'._id';
-  
-  //v.refs = refs;
+  v.idField = v.table + "._id";
 
+  //v.refs = refs;
   //v.increments = 'id'.primary();
   /*
     v.uid = {
@@ -163,63 +158,67 @@ function parse(name, params, knex) {
 }
 
 function sync(knex, _schema) {
-    let r = knex.schema.createTableIfNotExists(_schema.table, function (table) {
-        table.increments('_id');
-        _.forEach(_schema.props, (v,k) => {
-           //console.log('-', k);
-            let z;
-            if(v.type==="string") z = table.text(k);
-            else if(v.type==="float") z = table.float(k);
-            else if(v.type==="date") {
-                z = table.timestamp(k).defaultTo(knex.fn.now());
-            } else if(v.type==="jsonb") z = table.jsonb(k);
-            else if(v.type==="id") z = table.integer(k).unsigned();
-            else if(v.ref) {
-                z = table.integer(k).unsigned()
-                table.foreign(k).references(v.refTable+'._id');
-            }
-            // todo foreign key link
-            if(!z) return;
-            if(v.defaut) z = z.defaultTo(v.default);
-            if(v.notNullable) z = z.notNullable();
-        });
+  let r = knex.schema.createTableIfNotExists(_schema.table, function(table) {
+    table.increments("_id");
+    _.forEach(_schema.props, (v, k) => {
+      //console.log('-', k);
+      let z;
+      if (v.type === "string") z = table.text(k);
+      else if (v.type === "float") z = table.float(k);
+      else if (v.type === "date") {
+        z = table.timestamp(k).defaultTo(knex.fn.now());
+      } else if (v.type === "jsonb") z = table.jsonb(k);
+      else if (v.type === "id") z = table.integer(k).unsigned();
+      else if (v.ref) {
+        z = table.integer(k).unsigned();
+        table.foreign(k).references(v.refTable + "._id");
+      }
+      // todo foreign key link
+      if (!z) return;
+      if (v.defaut) z = z.defaultTo(v.default);
+      if (v.notNullable) z = z.notNullable();
     });
+  });
 
-     _.forEach(_schema.joins, (v,k) => {
-         console.log('v.ltable', v.ltable)
-         r = r.createTableIfNotExists(v.ltable, function (table) {
-             table.increments('_id');
+  _.forEach(_schema.joins, (v, k) => {
+    console.log("v.ltable", v.ltable);
+    r = r.createTableIfNotExists(v.ltable, function(table) {
+      table.increments("_id");
 
-            table.integer(_schema.table).unsigned();
-            table.foreign(_schema.table).references(_schema.table+'._id');
+      table.integer(_schema.table).unsigned();
+      table.foreign(_schema.table).references(_schema.table + "._id");
 
-            table.integer(k).unsigned();
-            table.foreign(k).references(v.refTable+'._id');
-         });
-     });
+      table.integer(k).unsigned();
+      table.foreign(k).references(v.refTable + "._id");
+    });
+  });
 
-    return r;
+  return r;
 }
 
 function find(knex, _schema) {
-    let q = knex.select().from(_schema.table);
-    
-    _.forEach(_schema.joins, (v,k) => {
-        q = q.leftOuterJoin(v.ltable, _schema.idField, v.ltable + '.' + _schema.table);
-    });
+  let q = knex.select().from(_schema.table);
 
-    return q;
+  _.forEach(_schema.joins, (v, k) => {
+    q = q.leftOuterJoin(
+      v.ltable,
+      _schema.idField,
+      v.ltable + "." + _schema.table
+    );
+  });
+
+  return q;
 }
 
 function findByID(knex, _schema, id) {
-    const q = find(knex, _schema);
-    return q.where('_id', id);
+  const q = find(knex, _schema);
+  return q.where("_id", id);
 }
 
 function create(knex, _schema, obj) {
-    const w = _.without(_.keys(obj), ..._schema.fields);
-    console.log(_schema.table + ' removed fields', w)
-    // take only valid fields
-    const filtered = _.omit(obj, ...w);
-    return knex(_schema.table).insert(filtered);
+  const w = _.without(_.keys(obj), ..._schema.fields);
+  console.log(_schema.table + " removed fields", w);
+  // take only valid fields
+  const filtered = _.omit(obj, ...w);
+  return knex(_schema.table).insert(filtered);
 }
