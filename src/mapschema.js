@@ -124,7 +124,6 @@ function parse(name, params, knex) {
   const v = {};
 
   v.props = _.merge(
-    { type: "object" },
     vTypes,
     vATypes,
     vDefaults,
@@ -167,18 +166,22 @@ function sync(knex, _schema) {
     let r = knex.schema.createTableIfNotExists(_schema.table, function (table) {
         table.increments('_id');
         _.forEach(_schema.props, (v,k) => {
-           // console.log('-', v);
+           //console.log('-', k);
             let z;
             if(v.type==="string") z = table.text(k);
             else if(v.type==="float") z = table.float(k);
-            else if(v.type==="date") z = table.timestamps(k);
-            else if(v.type==="jsonb") z = table.jsonb(k);
+            else if(v.type==="date") {
+                z = table.timestamp(k).defaultTo(knex.fn.now());
+            } else if(v.type==="jsonb") z = table.jsonb(k);
             else if(v.type==="id") z = table.integer(k).unsigned();
             else if(v.ref) {
-                table.integer(k).unsigned()
+                z = table.integer(k).unsigned()
                 table.foreign(k).references(v.refTable+'._id');
             }
             // todo foreign key link
+            if(!z) return;
+            if(v.defaut) z = z.defaultTo(v.default);
+            if(v.notNullable) z = z.notNullable();
         });
     });
 

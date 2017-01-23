@@ -8,8 +8,28 @@ const Models = require("./models").init(Schema);
 
 const mapschema = require("../src/mapschema");
 
+const localPG = {
+  client: 'pg',
+  connection: {
+      user: 'jonathan.dunlap',
+      database: 'test',
+      port: 5432,
+      host: 'localhost',
+      password: ''
+  },
+  debug: false,
+  pool: {
+      min: 1,
+      max: 2 
+  }
+};
+
+const noPG = { client: 'pg' };
+
+const connectionParams = localPG; //localPG noPG
+
 describe("utils", function() {
-  let knex = require('knex')({client: 'pg'});
+  let knex = require('knex')(connectionParams);
 
   it("finds relative tables", function(d) {
     const x = mapschema.getRelations("Package", Models.Package);
@@ -40,19 +60,28 @@ describe("utils", function() {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
     console.log("parse\n", x);
-    const y = mapschema.sync(knex, x).toString();
-    console.log("sync\n", y);
-    d()
+    const y = mapschema.sync(knex, x)
+    const y1 = y.toString();
+    console.log("sync\n", y1);
+    y.then(x=>{
+      console.log('sync done', JSON.stringify(x));
+      d();
+    });
   });
-
+/*
   // ====================
   it("query all", function(d) {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
     //console.log("parse\n", x);
-    const y = mapschema.find(knex, x).toString();
-    console.log("find\n", y);
-    d()
+    const y = mapschema.find(knex, x)
+    const y1 = y.toString();
+    console.log("find\n", y1);
+    y.then(x=>{
+      console.log('done', JSON.stringify(x));
+      d();
+    });
+    
   });
 
   it("query by id", function(d) {
@@ -73,7 +102,7 @@ describe("utils", function() {
     const y = mapschema.create(knex, x, obj).toString();
     console.log("create\n", y);
     d()
-  });
+  });*/
 });
 /*
 PackageSchema = new Schema(Models.Package)
