@@ -173,8 +173,10 @@ function sync(knex, _schema) {
         z = table.integer(k).unsigned();
         table.foreign(k).references(v.refTable + "._id");
       }
-      // todo foreign key link
-      if (!z) return;
+      else {
+          console.warn(_schema.table + ': lacks type for prop ' + v.type);
+          return;
+      }
       if (v.defaut) z = z.defaultTo(v.default);
       if (v.notNullable) z = z.notNullable();
     });
@@ -220,5 +222,5 @@ function create(knex, _schema, obj) {
   console.log(_schema.table + " removed fields", w);
   // take only valid fields
   const filtered = _.omit(obj, ...w);
-  return knex(_schema.table).insert(filtered);
+  return knex(_schema.table).insert(filtered).returning('_id');
 }

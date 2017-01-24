@@ -1,6 +1,7 @@
 // Simple mongoose test
 // TODO: refactor to unit test
-var assert = require("chai").assert;
+const assert = require("chai").assert;
+const Promise = require('bluebird');
 
 const mp = require("../src/index.js");
 const Schema = mp.Schema;
@@ -53,13 +54,25 @@ describe("utils", function() {
   it("creates internal schema representation", function(d) {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
+    const x1 = mapschema.parse("Sticker", Models.Sticker, knex);
+    const x2 = mapschema.parse("Category", Models.Category, knex);
     console.log("parse\n", x);
     const y = mapschema.sync(knex, x);
-    const y1 = y.toString();
-    console.log("sync\n", y1);
-    y.then(x => {
-      console.log("sync done", JSON.stringify(x));
-      d();
+    const y1 = mapschema.sync(knex, x1);
+    const y2 = mapschema.sync(knex, x2);
+    const yS = y.toString();
+    console.log("sync\n", yS);
+    //Promise.all([y1, y2, y], x=> {   
+    //});
+    y1.then(x => {
+      console.log("1 sync done", JSON.stringify(x));
+      y2.then(x => {
+        console.log("2 sync done", JSON.stringify(x));
+        y.then(x => {
+        console.log("0 sync done", JSON.stringify(x));
+        d();
+        });
+      });
     });
   });
   /*
