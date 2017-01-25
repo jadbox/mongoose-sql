@@ -3,6 +3,7 @@ const schema = require("./Schema");
 
 module.exports = { getRelations, parse, sync, find, findByID, create };
 
+const TYPE_JSONB = "jsonb";
 const typeMap = {
   [String]: "string",
   [Number]: "float",
@@ -10,9 +11,9 @@ const typeMap = {
   [Date]: "date",
   [Boolean]: "boolean",
   // untyped array
-  [Array]: "jsonb",
+  [Array]: TYPE_JSONB,
   // untyped object
-  [Object]: "jsonb"
+  [Object]: TYPE_JSONB
 };
 
 const ONE = "1", MANY = ">1";
@@ -60,6 +61,8 @@ function getRelations(name, params) {
 
 // Makes a clean internal representation to consume
 function parse(name, params, knex) {
+  // check if knex ref is provided, otherwise no-op
+  const knexNow = knex ? knex.fn.now.bind(knex.fn) : x => ""; 
   // Translate mongoose field types to sql
   const vTypes = _(params)
     .pickBy(x => x.type && !x.ref)
@@ -67,19 +70,24 @@ function parse(name, params, knex) {
     .value();
 
   // PATCH: Convert fields that manually link fieds to Integer instead of FLOAT. Ex: Package.cptPackageId
+  const isIntProp = k => {
+      if(!k) throw new Error('invalid key');
+      return k.indexOf("Id") > 2 || k.indexOf('priority') !== -1;
+  }
   _(vTypes)
-    .toPairs()
-    .filter(([ k, v ]) => v.type === typeMap[Number] && k.indexOf("Id") > -1)
-    .fromPairs()
-    .mapValues(x => ({ type: typeMap.id }))
-    .forEach((v, field) => vTypes[field].type = v);
+    .pickBy((v, k) => v.type === typeMap[Number] && isIntProp(k))
+    .mapValues(x => typeMap.id)
+    .forEach((v, field) => {
+        //console.log(name + ':' + field + ' overriding ', vTypes[field].type + ' to ' + v);
+        vTypes[field].type = v;
+    });
 
   // Default value conversion (non-collection)
   const vDefaults = _(params)
     .pickBy(x => x.default)
     .mapValues(x => {
       if (x.default === Date.now)
-        return { notNullable: true, default: knex ? knex.fn.now() : "" };
+        return { notNullable: true, default: knexNow() };
       else
         return { default: x.default };
     })
@@ -164,19 +172,23 @@ function sync(knex, _schema) {
       //console.log('-', k);
       let z;
       if (v.type === "string") z = table.text(k);
+      else if(v.type === "boolean") z = table.boolean(k);
       else if (v.type === "float") z = table.float(k);
+      else if (v.type === "integer") z = table.integer(k);
       else if (v.type === "date") {
         z = table.timestamp(k).defaultTo(knex.fn.now());
-      } else if (v.type === "jsonb") z = table.jsonb(k);
+      } 
+      else if (v.type === "jsonb") z = table.jsonb(k);
       else if (v.type === "id") z = table.integer(k).unsigned();
       else if (v.ref) {
         z = table.integer(k).unsigned();
         table.foreign(k).references(v.refTable + "._id");
       }
-      else {
+      if(!z) {
           console.warn(_schema.table + ': lacks type for prop ' + v.type);
           return;
       }
+
       if (v.defaut) z = z.defaultTo(v.default);
       if (v.notNullable) z = z.notNullable();
     });
@@ -218,9 +230,38 @@ function findByID(knex, _schema, id) {
 }
 
 function create(knex, _schema, obj) {
+   if(obj.recommendedPackages) {
+    //console.log('_schema.joins', _schema.joins, _.keys(obj));
+    console.log( _(obj).pickBy((v,k)=>_schema.joins[k]).value() );
+    //return;
+   }
+
   const w = _.without(_.keys(obj), ..._schema.fields);
-  console.log(_schema.table + " removed fields", w);
+  if(w.length > 0) console.log(_schema.table + " removed fields", w);
   // take only valid fields
   const filtered = _.omit(obj, ...w);
-  return knex(_schema.table).insert(filtered).returning('_id');
+
+  //const t = JSON.stringify();
+  const jsonbFixed = _(filtered)
+    .pickBy( (v,k) => _schema.props[k].type ===  TYPE_JSONB)
+    .mapValues( v => JSON.stringify(v) ).value();
+
+  console.log(_schema.table + ' saving ');// + JSON.stringify(jsonbFixed));
+  let query = knex(_schema.table).insert(jsonbFixed).returning('_id');
+
+  // associations
+  _(obj).pickBy((v,k)=>_schema.joins[k])
+    .mapValues( (v,k) => {
+        const vo = _schema.joins[k];
+        console.log('---------saving into ', vo.ltable, vo.refTable);
+        _.forEach(v, vid => {
+             query = query.then(
+                id => knex(vo.ltable)
+                .insert({ [vo.refTable]: id, [k]: vid })
+                .then(x=>id)// return row id
+         ); 
+        });
+    } ).value();
+
+  return query;
 }
