@@ -40,17 +40,21 @@ function init() {
   //const x1 = mapschema.parse("Sticker", models.Sticker, knex);
   let uuid = {};
 
-  const migrateTables = [ stickerZ, categoryZ, packageZ ];
+  const migrateTables = [stickerZ, categoryZ, packageZ];
 
   Promise.mapSeries(migrateTables, migrateTable).then(y => {
-    console.log("everything done, yay");
+    console.log("first pass done, yay")
+    mapschema.migrateTablePost(knex).then(x=>
+      console.log("everything done, yay")
+    );
   });
 
   function create(Base, elem) {
     let v = elem.toObject();
-    const _id = v._id;
-    delete v.__v;
-    delete v._id;
+    ///const _id = v._id;
+    ///delete v.__v;
+    ///delete v._id;
+    // map to uuid version
     v = _(v).mapValues((v, k) => uuid[v] || v).value();
     console.log(Base.table + ":");
     // + JSON.stringify(v, null, "\t"));
@@ -66,36 +70,36 @@ function init() {
     console.log("Base", Base.table);
     return new Promise(function(resolve, reject) {
       Base.mongoose.find().exec((e, x) => {
+        
         //if(i) return;
         //i++;
         //console.log(e,'-', JSON.stringify(x));
         //console.log('--------');
         if (x.length === undefined) throw new Error("no length");
-        setTimeout(
-          () => {
-            Promise.mapSeries(x, y => create(Base, y)).then(x => {
+        mapschema.migrateTable(knex, Base, x).then(x => {
+          console.log(Base.table + " all done");
+          resolve("done");
+        });
+        /*Promise.mapSeries(x, y => create(Base, y)).then(x => {
               console.log(Base.table + " all done");
               resolve("done");
-            });
-            //const d = _.filter(x, x=>x.category);
-            //return;
-            //const vobj = { priority: 10 }; //x[0]
-            //delete v.segments;
-            //delete v.featureSticker;
-            ///delete v.category;
-            //delete v.recommendedPackages;
-            //delete v.influencers;
-            //delete v.zInfluencers;
-            //delete v.videoExamples;
-            // migrate string values over
-            //const y = _.keysIn(v); //_.pickBy(x[3], _.isFunction);
-            //console.log('==',  y, v.priority, v.name);
-            //return;
-            ///const np = new Package( v ); //, {include:['Category']}
-            ///np.save( (e,x) => console.log('saved', e));
-          },
-          1512
-        );
+            });*/
+        //const d = _.filter(x, x=>x.category);
+        //return;
+        //const vobj = { priority: 10 }; //x[0]
+        //delete v.segments;
+        //delete v.featureSticker;
+        ///delete v.category;
+        //delete v.recommendedPackages;
+        //delete v.influencers;
+        //delete v.zInfluencers;
+        //delete v.videoExamples;
+        // migrate string values over
+        //const y = _.keysIn(v); //_.pickBy(x[3], _.isFunction);
+        //console.log('==',  y, v.priority, v.name);
+        //return;
+        ///const np = new Package( v ); //, {include:['Category']}
+        ///np.save( (e,x) => console.log('saved', e));
       });
     });
   }

@@ -59,6 +59,10 @@ function init(Schema) {
     insightsDeckFileName: { // TODO NEW PROP
       type: String // ?
     },
+    oneSheetFileName: {
+      type: String
+    },
+    //====
 
     featuredVideos: [{
       type: String
