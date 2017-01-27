@@ -56,6 +56,14 @@ function init(Schema) {
       type: String
     },
 
+    insightsDeckFileName: { // TODO NEW PROP
+      type: String // ?
+    },
+    oneSheetFileName: {
+      type: String
+    },
+    //====
+
     featuredVideos: [{
       type: String
     }],
@@ -188,6 +196,9 @@ function init(Schema) {
   }
 
   const Category = {
+    priority: { // ===== NEW PROP
+      type: Number
+    },
     created: {
       type: Date,
       default: Date.now
