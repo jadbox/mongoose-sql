@@ -129,9 +129,19 @@ describe("Mongoose API", function() {
 
   const Sticker = mp.model('Sticker', StickerSchema);
 
-  it("create", function(d) {
+  it("find", function(d) {
     Sticker.find().exec((e, x) => {
-      console.log('found', x);
+      console.log('found find', x);
+      assert(x.length > 0);
+      //assert.ok(e);
+      d();
+    });
+  });
+
+  it("findByID", function(d) {
+    Sticker.findByID(534).exec((e, x) => {
+      console.log('found findByID', x);
+      assert(x.length > 0);
       //assert.ok(e);
       d();
     });

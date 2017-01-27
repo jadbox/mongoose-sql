@@ -6,9 +6,9 @@ module.exports = class Query {
   constructor(model, params, byID, _knex) {
     this.knex = _knex;
     this.model = model;
-    this.params = params || {};
+    this.params = params; // || {};
     //this.ops = [ SQLZ_INCLUDE_ALL ]; // include all?
-    this.method = byID === true;//? "findByID" : "findAll";
+    this.byID = byID === true;//? "findByID" : "findAll";
   }
   sort(field) {
     this.ops.push({ order: [ [ field, "DESC" ] ] });
@@ -18,8 +18,14 @@ module.exports = class Query {
     if (DEBUG) console.log("exec", this.method);
     const _schema = this.model.schema;
     console.log('_schema.table', _schema.table);
-    return this.knex.select('*').from(_schema.table)
-      .then(x=>cb(null, x));
+
+    if(!this.byID)
+      return this.knex.select('*').from(_schema.table)
+        .then(x=>cb(null, x));
+    else
+      return this.knex.select('*').from(_schema.table)
+        .where('_id', this.params)
+        .then(x=>cb(null, x));      
     //this.model[this.method](this.params).then(x => cb(null, x)).catch(cb);
   }
 };
