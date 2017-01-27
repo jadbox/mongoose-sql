@@ -306,10 +306,7 @@ function moveIDKey(obj) {
 }
 
 // Cheating global state that persist over several table migrations
-const idMap = {};
-//, schemaMap = {};
-const todo = [];
-//, todo = {}; // {table:[ prop ]}
+const idMap = {}, todo = [];
 //batchInsert
 function migrateTable(knex, _schema, objs) {
   const _removeInvalidKeys = removeInvalidKeys.bind(null, _schema),
@@ -349,7 +346,6 @@ function migrateTable(knex, _schema, objs) {
   const jsonbFixed = _.map(filtered, _correctJsonFields);
 
   console.log(_schema.table + " saving " + jsonbFixed.length + " rows");
-  //, jsonbFixed[0]);
   console.log();
   // + JSON.stringify(jsonbFixed));
   let query = Promise.all(
@@ -364,26 +360,9 @@ function migrateTable(knex, _schema, objs) {
     // save id map
     _.forEach(results, ([ { _id, __id } ]) => idMap[__id] = _id);
     console.log(_schema.table, "idMap", idMap);
-    //throw new Error("end"); ///!!!!!!
     return results;
   });
 
-  // associations
-  //query
-  /*
-  _(obj).pickBy((v,k)=>_schema.joins[k])
-    .mapValues( (v,k) => {
-        const vo = _schema.joins[k];
-        console.log('---------saving into ', vo.ltable, vo.refTable);
-        _.forEach(v, vid => {
-             query = query.then(
-                ids => knex(vo.ltable)
-                .insert({ [vo.refTable]: ids[0], [k]: vid })
-                .then(x=>ids)// return row id
-         ); 
-        });
-    } ).value();
-    */
   return query;
 }
 
@@ -405,7 +384,6 @@ function migrateTablePost(knex) {
         // one relationship
         const id = idMap[val];
         if (!id) console.warn("RefList inconsistent record " + val);
-        //throw new Error("RefList inconsistent record " + val);
         return id;
       });
     return e;

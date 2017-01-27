@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+//const mongoose = require("mongoose");
 //const Sequelize = require("sequelize");
 const Knex = require("knex");
 let knex = null;
@@ -7,7 +7,7 @@ var OModel = objection.Model;
 
 const Schema = require("./Schema");
 const Query = require("./Query");
-const { Model, ModelInstance } = require("./Model");
+const { Model, ModelInstance, modelFactory } = require("./Model");
 
 const _ = require("lodash");
 
@@ -25,19 +25,21 @@ const getModel = function(x) {
 
 // Model factor method: returns Model
 function modelNew(name, schema) {
-  const model = makeModelDef(name, schema);
+  const model = modelFactory(name, schema);
+  model.setKnex(knex);
   // new Model(name, schema);
-  if (CONNECT_MONGO && schema.mongo)
-    model.mongo = mongoose.model(name, schema.mongo);
+  ///if (CONNECT_MONGO && schema.mongo)
+  //  model.mongo = mongoose.model(name, schema.mongo);
   models[name] = model;
   // cache it
-  waitOn(model);
+  //waitOn(model);
   // watch for dependent models
   return model;
 }
 
 // Check for dependency models added
 // TODO: refactor model.Model
+/*
 function waitOn(model) {
   const ks = model.Model.refsUnlinked;
 
@@ -65,7 +67,7 @@ function waitOn(model) {
       model.Model.refsUnlinked
     );
   setTimeout(waitOn, 100, model);
-}
+}*/
 
 // Sequelize init
 function init(params) {

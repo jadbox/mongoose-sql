@@ -51,6 +51,7 @@ describe("utils", function() {
   });
 
   // ====================
+  /*
   it("creates internal schema representation", function(d) {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
@@ -75,6 +76,7 @@ describe("utils", function() {
       });
     });
   });
+  */
   /*
   // ====================
   it("query all", function(d) {
@@ -111,19 +113,27 @@ describe("utils", function() {
     d()
   });*/
 });
-/*
-PackageSchema = new Schema(Models.Package)
+describe("Mongoose API", function() {
+  const PackageSchema = new Schema(Models.Package)
 
-Package = mp.model('Package', PackageSchema)
+  const Package = mp.model('Package', PackageSchema)
 
-// Category
-CategorySchema = new Schema(Models.Category);
+  // Category
+  const CategorySchema = new Schema(Models.Category);
 
-Category = mp.model('Category', CategorySchema);
+  const Category = mp.model('Category', CategorySchema);
 
-// Sticker Model
+  // Sticker Model
 
-StickerSchema = new Schema(Models.Sticker);
+  const StickerSchema = new Schema(Models.Sticker);
 
-mp.model('Sticker', StickerSchema);
-*/
+  const Sticker = mp.model('Sticker', StickerSchema);
+
+  it("create", function(d) {
+    Sticker.find().exec((e, x) => {
+      console.log('found', x);
+      //assert.ok(e);
+      d();
+    });
+  });
+});
