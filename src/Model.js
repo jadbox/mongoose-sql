@@ -10,16 +10,38 @@ function init(_knex) {
 }
 // Model instance
 class ModelInstance {
-  constructor(model, vbo) {
-    this.vbo = vbo;
-    this.model = model;
+  constructor(Schema, vobj) {
+    this.vobj = vobj;
+    //this.model = model;
+    this.Schema = Schema; // sugar
+    //console.log('this.Schema', this.Schema)
+    if(!this.Schema.table) throw new Error('invalid table');
     //this.sqlz = model.create(vbo);
   }
+  delete(cb) { return remove(cb); } // alias
+  // todo: removeBy
   remove(cb) {
-    return this.model.destroy().then(x => cb()).catch(cb);
+    if( !this.vobj._id ) throw new Error('invalid _id');
+    return this.knex(this.Schema.table)
+      .where('_id', this.vobj._id)
+      .delete()
+      .then(x => {
+        cb(null, this.vobj._id);
+        return x;
+      })
+      .catch(cb);
+    //this.model.destroy().then(x => cb()).catch(cb);
   }
   save(cb) {
-    return this.model.save(this.vbo).then(x => cb()).catch(cb);
+    if( !this.vobj ) throw new Error('empty object to save');
+    return this.knex  //this.model.save(this.vobj)
+      .insert(this.vobj)
+      .into(this.Schema.table)
+      .returning('_id')
+      .then(x => {
+        cb(null, x[0]);
+        return x;
+      }).catch(cb)
   }
   setKnex(db) {
     this.knex = db;
@@ -48,12 +70,12 @@ function modelFactory(name, schema) {
 class Model {
   constructor(name, schema) {
     this.name = name;
-    this.Schema = schema;
+    this.SchemaWrapper = schema;
     if (DEBUG) console.log("-- parsing " + name + " --");
     
   }
   create(vobj) {
-    const m = new ModelInstance(this, vobj);
+    const m = new ModelInstance(this.schema, vobj);
     return m.setKnex(this.knex);
   }
   loaded() {
@@ -65,8 +87,9 @@ class Model {
   findByID(id) {
     return new Query(this, id, true, this.knex);
   }
-  remove(vobj) {
-    return this.sqlm.destroy();
+  remove(vobj, cb) {
+    if(!cb) cb = x=>x;
+    return this.create(vobj).save(cb);
   }
   save(vobj, opts) {
     if (!vobj) throw new Error("vobj is null");
@@ -76,12 +99,7 @@ class Model {
   setKnex(db) {
     this.knex = db;
 
-    this.schema = core.parse(this.name, this.Schema.def, this.knex);
-    console.log();
-    console.log("==", this.Schema.def);
-    console.log();
-    console.log("-", this.schema);
-
+    this.schema = core.parse(this.name, this.SchemaWrapper.def, this.knex);
     return this;
   }
 }

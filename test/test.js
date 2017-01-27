@@ -131,7 +131,7 @@ describe("Mongoose API", function() {
 
   it("find", function(d) {
     Sticker.find().exec((e, x) => {
-      console.log('found find', x);
+      console.log('found find', x.length);
       assert(x.length > 0);
       //assert.ok(e);
       d();
@@ -146,4 +146,30 @@ describe("Mongoose API", function() {
       d();
     });
   });
+
+  let delID = -1;
+  it("create", function(d) {
+    const s = new Sticker({label: 'test123'});
+    s.save((e, x) => {
+      console.log('create', x);
+      delID = x;
+      assert(!!x);
+      assert(e===null);
+      //assert.ok(e);
+      d();
+    });
+  });
+
+ it("delete", function(d) {
+    const s = new Sticker({ _id: delID });
+    s.remove((e, x) => {
+      console.log('delete', x);
+      assert(!!x);
+      assert(e===null);
+      //assert.ok(e);
+      d();
+    });
+  });
+
+
 });
