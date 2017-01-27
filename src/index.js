@@ -1,9 +1,6 @@
 //const mongoose = require("mongoose");
-//const Sequelize = require("sequelize");
 const Knex = require("knex");
 let knex = null;
-var objection = require("objection");
-var OModel = objection.Model;
 
 const Schema = require("./Schema");
 const Query = require("./Query");

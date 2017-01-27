@@ -1,5 +1,5 @@
 {
-  "name": "mongoose-sequelize",
+  "name": "mongoose-sql",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
@@ -16,9 +16,7 @@
     "knex": "^0.12.6",
     "lodash": "^4.17.4",
     "mocha": "^3.2.0",
-    "mongoose": "^4.7.8",
-    "objection": "^0.6.2",
-    "sequelize": "^3.30.0"
+    "mongoose": "^4.7.8"
   },
   "devDependencies": {
     "mocha": "^3.2.0",
