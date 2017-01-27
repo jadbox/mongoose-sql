@@ -1,5 +1,6 @@
 const _ = require("lodash");
 const schema = require("./Schema");
+const Promise = require("bluebird").Promise;
 
 module.exports = {
   getRelations,
@@ -281,10 +282,10 @@ function create(knex, _schema, obj) {
 function correctJsonFields(_schema, obj) {
   const r = _(obj)
     .pickBy((v, k) => _schema.props[k] && _schema.props[k].type === TYPE_JSONB)
-    .mapValues( JSON.stringify )
+    .mapValues(JSON.stringify)
     .value();
 
-    return _.merge(obj, r); //l->r
+  return _.merge(obj, r); //l->r
 }
 
 function removeInvalidKeys(_schema, obj) {
@@ -298,60 +299,74 @@ function removeInvalidKeys(_schema, obj) {
 function moveIDKey(obj) {
   // in-place op
   //if (typeof obj._id === 'object' || typeof obj._id === 'string') {
-    obj.__id = obj._id.toString();
-    delete obj._id;
- // }
+  obj.__id = obj._id.toString();
+  delete obj._id;
+  // }
   return obj;
 }
 
 // Cheating global state that persist over several table migrations
-const idMap = {}, schemaMap = {};
+const idMap = {};
+//, schemaMap = {};
 const todo = [];
 //, todo = {}; // {table:[ prop ]}
 //batchInsert
 function migrateTable(knex, _schema, objs) {
-    const _removeInvalidKeys = removeInvalidKeys.bind(null, _schema),
-        _correctJsonFields = correctJsonFields.bind(null, _schema);
+  const _removeInvalidKeys = removeInvalidKeys.bind(null, _schema),
+    _correctJsonFields = correctJsonFields.bind(null, _schema);
 
   objs = _.map(objs, x => x.toObject ? x.toObject() : x);
 
-  schemaMap[_schema.table] = _schema;
+  //schemaMap[_schema.table] = _schema;
   objs = _.map(objs, v => moveIDKey(v));
+
+  _.map(
+    _schema.refs,
+    // map over schema refs
+    field => _.map(objs, // extract fields
+    o => {
+      //console.log('=======k', field);
+      //process.exit(1);
+      const val = o[field];
+      if (!val) return;
+      delete o[field];
+
+      // removed from insert
+      let todoItem = { field, id: o.__id, val, table: _schema.table };
+
+      // save association table for many to many
+      if (_schema.joins[field]) {
+        todoItem = _.merge(todoItem, {
+          refTable: _schema.joins[field].refTable,
+          ltable: _schema.joins[field].ltable
+        });
+      }
+      todo.push(todoItem);
+    })
+  );
 
   const filtered = _.map(objs, _removeInvalidKeys);
   const jsonbFixed = _.map(filtered, _correctJsonFields);
 
-  _.map(_schema.refs,
-      // map over schema refs
-      field => _.map(jsonbFixed, // extract fields
-       o => {
-           //console.log('=======k', field);
-           //process.exit(1);
-           const val = o[field];
-           if(!val) return;
-           delete o[field]; // removed from insert
-           todo.push({ field, id: o.__id, val, table: _schema.table });
-       })
-  );
-  
-  console.log(_schema.table + ' saving ' + jsonbFixed.length + ' rows');//, jsonbFixed[0]);
+  console.log(_schema.table + " saving " + jsonbFixed.length + " rows");
+  //, jsonbFixed[0]);
   console.log();
   // + JSON.stringify(jsonbFixed));
-  let query = Promise.all(_.map(jsonbFixed, o => {
-            //console.log(JSON.stringify(o, null, '\t'));
-            return knex(_schema.table).insert(o).returning([ '_id', '__id' ])
-            .then(x=>x) //toPromise
-        }
-    ))
-     .then(results => {
-      // save id map
-      
-      
-      _.forEach(results, ([{ _id, __id }]) => idMap[__id] = _id);
-      console.log(_schema.table, 'idMap', idMap);
-      //throw new Error("end"); ///!!!!!!
-      return results;
-    });
+  let query = Promise.all(
+    _.map(jsonbFixed, o => {
+      //console.log(JSON.stringify(o, null, '\t'));
+      return knex(_schema.table)
+        .insert(o)
+        .returning([ "_id", "__id" ])
+        .then(x => x); //toPromise
+    })
+  ).then(results => {
+    // save id map
+    _.forEach(results, ([ { _id, __id } ]) => idMap[__id] = _id);
+    console.log(_schema.table, "idMap", idMap);
+    //throw new Error("end"); ///!!!!!!
+    return results;
+  });
 
   // associations
   //query
@@ -375,22 +390,51 @@ function migrateTable(knex, _schema, objs) {
 // Saves associations
 function migrateTablePost(knex) {
   //console.log("idMap", idMap);
-
-  const todoMap = _.map(_.clone(todo), e => {
+  const todoMap = _.map(_.cloneDeep(todo), e => {
+    //console.log('e', e);
+    e.id = idMap[e.id];
+    if (!e.id) throw new Error("inconsistent id record", e.id);
+    // direct relationships
+    if (!e.refTable) {
       e.val = idMap[e.val];
-      e.id = idMap[e.id];
-      if(!e.val) throw new Error("inconsistent record");
-      return e;
+      if (!e.val) {
+        console.warn(e);
+        throw new Error("Ref inconsistent record " + e.val);
+      }
+    } else e.val = _.map(e.val, val => {
+        // one relationship
+        const id = idMap[val];
+        if (!id) console.warn("RefList inconsistent record " + val);
+        //throw new Error("RefList inconsistent record " + val);
+        return id;
+      });
+    return e;
+    //console.log('e1', e);
   });
 
-  console.log("todo", JSON.stringify(todoMap, null, "\t"));
-
+  //console.log("todo", JSON.stringify(todoMap, null, "\t"));
   // todo many to many
   const ps = _.map(todoMap, e => {
-      //const _schema = schemaMap[e.table];
-      return knex(e.table).where('_id', e.id)
-            .update(e.field, e.val).returning('_id')
-        .then(x=>x)
+    //const _schema = schemaMap[e.table];
+    if (!e.refTable) {
+      return knex(e.table)
+        .where("_id", e.id)
+        .update(e.field, e.val)
+        .returning("_id")
+        .then(x => x);
+    } else {
+      //console.log('e.refTable', e.refTable, e.val, e.table, e.id);
+      // save associations
+      return Promise.map(
+        e.val,
+        //promisify
+        val =>
+          knex(e.ltable)
+            .insert({ [e.field]: val, [e.table]: e.id })
+            .returning([ [ e.field ], [ e.table ] ])
+            .then(x => x)
+      );
+    }
   });
 
   return Promise.all(ps);

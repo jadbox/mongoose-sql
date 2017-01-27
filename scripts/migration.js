@@ -70,7 +70,6 @@ function init() {
     console.log("Base", Base.table);
     return new Promise(function(resolve, reject) {
       Base.mongoose.find().exec((e, x) => {
-        
         //if(i) return;
         //i++;
         //console.log(e,'-', JSON.stringify(x));
