@@ -223,6 +223,7 @@ function sync(knex, _schema) {
   return r;
 }
 
+// find with all populate
 function find(knex, _schema) {
   let q = knex.select().from(_schema.table);
 
@@ -237,11 +238,13 @@ function find(knex, _schema) {
   return q;
 }
 
+// find with all populate by ID
 function findByID(knex, _schema, id) {
   const q = find(knex, _schema);
   return q.where("_id", id);
 }
 
+// Create an entry with associations
 function create(knex, _schema, obj) {
   if (obj.recommendedPackages) {
     //console.log('_schema.joins', _schema.joins, _.keys(obj));
@@ -252,7 +255,7 @@ function create(knex, _schema, obj) {
   const filtered = removeInvalidKeys(_schema, obj);
   const jsonbFixed = correctJsonFields(_schema, filtered);
 
-  console.log(_schema.table + " saving ");
+  //console.log(_schema.table + " saving ");
   // + JSON.stringify(jsonbFixed));
   let query = knex(_schema.table).insert(jsonbFixed).returning("_id");
 

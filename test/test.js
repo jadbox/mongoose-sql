@@ -2,6 +2,7 @@
 // TODO: refactor to unit test
 const assert = require("chai").assert;
 const Promise = require('bluebird');
+const _ = require('lodash');
 
 const mp = require("../src/index.js");
 const Schema = mp.Schema;
@@ -138,34 +139,49 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("findByID", function(d) {
-    Sticker.findByID(534).exec((e, x) => {
-      console.log('found findByID', x);
+  it("find Sorted", function(d) {
+    Sticker.find().sort('label').exec((e, x) => {
+      //console.log('Sorted find', x).length;
       assert(x.length > 0);
+      assert(_.reduce(x, (acc,i) => {
+        assert(i.label > acc); 
+        return i.label;
+      }, ''));
       //assert.ok(e);
       d();
     });
   });
 
-  let delID = -1;
+  let createdID = -1;
   it("create", function(d) {
     const s = new Sticker({label: 'test123'});
     s.save((e, x) => {
-      console.log('create', x);
-      delID = x;
+      //console.log('create', x);
+      createdID = x;
       assert(!!x);
       assert(e===null);
+      //assert.ok(e);
+      d();
+    });
+  });
+
+  it("findByID", function(d) {
+    Sticker.findByID(createdID).exec((e, x) => {
+      //console.log('found findByID', x);
+      assert(x._id === createdID);
+      assert(x.created);
+      assert(x.label);
       //assert.ok(e);
       d();
     });
   });
 
  it("delete", function(d) {
-    const s = new Sticker({ _id: delID });
+    const s = new Sticker({ _id: createdID });
     s.remove((e, x) => {
-      console.log('delete', x);
       assert(!!x);
       assert(e===null);
+      assert(x === createdID);
       //assert.ok(e);
       d();
     });

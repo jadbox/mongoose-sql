@@ -9,25 +9,29 @@ module.exports = class Query {
     this.schema = model.schema; // sugar
     this.params = params; // || {};
     this.populateFields = [];
-    //this.ops = [ SQLZ_INCLUDE_ALL ]; // include all?
+    this.ops = [];
     this.byID = byID === true;//? "findByID" : "findAll";
   }
   sort(field) {
-    this.ops.push({ order: [ [ field, "DESC" ] ] });
+    // TODO: POPULATE
+    this.ops.push(q => q.orderBy(field) ); //'desc'
+    return this;
   }
   populate(model1, model2) {
    // TODO: POPULATE
    if(model1) this.populateFields.push(model1);
    if(model2) this.populateFields.push(model2);
+   return this;
   }
   exec(cb) {
-    //this.params = _.merge(this.params, ...ops);
-    if (DEBUG) console.log("exec", this.method);
+    // if (DEBUG) console.log("exec", this.method);
     const _schema = this.schema;
-    console.log('_schema.table', _schema.table);
 
     let q = this.knex.select('*').from(_schema.table);
-    if(this.byID) q = q.where('_id', this.params);
+    if(this.byID) q = q.where('_id', this.params)
+      .then(x => x.length > 0 ? x[0] : null);
+
+    _.forEach(this.ops, op => q = op(q));
 
     // TODO
     _.forEach(this.populateFields, f => {
