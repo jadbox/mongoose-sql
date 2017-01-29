@@ -2,7 +2,7 @@
 
 <img height="224px" src = "http://t10.deviantart.net/l0aLpKFx8pPp4COINIGMRXIVWuQ=/fit-in/700x350/filters:fixed_height(100,100):origin()/pre05/503a/th/pre/f/2014/341/1/5/rikki_tikki_tavi_by_hidde99-d88zxp6.png"/>
 
-Mongoose-SQL covers the basic API surface of Mongoose [ORM for Mongo] to interface and migrate data to PostgreSQL. This is effectively a small ORM over PostgreSQL that resembles the Mongoose API.
+Mongoose-SQL covers the basic API surface of [Mongoose](http://mongoosejs.com) [ORM for Mongo] to interface and migrate data to PostgreSQL. This is effectively a small ORM over PostgreSQL that resembles the Mongoose API.
 
 This library requires ES6 with Node.JS 6+ and uses [Knex](http://knexjs.org/) to interface with PostgreSQL.
 
