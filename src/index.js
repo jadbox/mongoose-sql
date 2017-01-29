@@ -29,43 +29,8 @@ function modelNew(name, schema) {
   ///if (CONNECT_MONGO && schema.mongo)
   //  model.mongo = mongoose.model(name, schema.mongo);
   models[name] = model;
-  // cache it
-  //waitOn(model);
-  // watch for dependent models
   return model;
 }
-
-// Check for dependency models added
-// TODO: refactor model.Model
-/*
-function waitOn(model) {
-  const ks = model.Model.refsUnlinked;
-
-  const loadedSQLModels = _.keys(_.pickBy(models, x => x.loaded()));
-  console.log("loadedSQLModels", loadedSQLModels);
-  const loadedModels = _.intersection(ks, loadedSQLModels);
-
-  // console.log(model.name, model.refsUnlinked)
-  model.Model.refsUnlinked = _.difference(
-    model.Model.refsUnlinked,
-    loadedSQLModels
-  );
-
-  if (model.Model.refsUnlinked.length === 0) {
-    if (DEBUG) console.log(model.name + " has all deps");
-    model._sqlize(models);
-    return;
-  }
-
-  if (DEBUG)
-    console.log(
-      model.name + " loaded",
-      loadedModels,
-      "wating on",
-      model.Model.refsUnlinked
-    );
-  setTimeout(waitOn, 100, model);
-}*/
 
 // Sequelize init
 function init(params) {
@@ -92,6 +57,6 @@ if (e.PSQL_INIT || true) {
 module.exports = exports = { 
   Schema: Schema, 
   model: modelNew, 
-  init: init,
+  init: init, connect: init, createConnection: init,
   migrateSchemas: core.migrateSchemas 
 };
