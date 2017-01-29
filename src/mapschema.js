@@ -9,8 +9,9 @@ module.exports = {
   find,
   findByID,
   create,
-  migrateTable,
-  migrateTablePost
+  migrateSchemas
+  //migrateTable,
+  //migrateTablePost
 };
 
 const TYPE_JSONB = "jsonb";
@@ -350,10 +351,8 @@ function migrateTable(knex, _schema, objs) {
 
   console.log(_schema.table + " saving " + jsonbFixed.length + " rows");
   console.log();
-  // + JSON.stringify(jsonbFixed));
   let query = Promise.all(
     _.map(jsonbFixed, o => {
-      //console.log(JSON.stringify(o, null, '\t'));
       return knex(_schema.table)
         .insert(o)
         .returning([ "_id", "__id" ])
@@ -371,9 +370,7 @@ function migrateTable(knex, _schema, objs) {
 
 // Saves associations
 function migrateTablePost(knex) {
-  //console.log("idMap", idMap);
   const todoMap = _.map(_.cloneDeep(todo), e => {
-    //console.log('e', e);
     e.id = idMap[e.id];
     if (!e.id) throw new Error("inconsistent id record", e.id);
     // direct relationships
@@ -390,10 +387,8 @@ function migrateTablePost(knex) {
         return id;
       });
     return e;
-    //console.log('e1', e);
   });
 
-  //console.log("todo", JSON.stringify(todoMap, null, "\t"));
   // todo many to many
   const ps = _.map(todoMap, e => {
     //const _schema = schemaMap[e.table];
@@ -404,11 +399,9 @@ function migrateTablePost(knex) {
         .returning("_id")
         .then(x => x);
     } else {
-      //console.log('e.refTable', e.refTable, e.val, e.table, e.id);
       // save associations
       return Promise.map(
         e.val,
-        //promisify
         val =>
           knex(e.ltable)
             .insert({ [e.field]: val, [e.table]: e.id })
@@ -419,7 +412,26 @@ function migrateTablePost(knex) {
   });
 
   return Promise.all(ps);
-  // field many to One
-  //_.map()
-  // many to many
+}
+
+function migrateSchemas(knex, schemas) {
+  return Promise.mapSeries(migrateTables, migrateSchema).then(y => {
+    console.log("non-relational schemas migrated")
+    mapschema.migrateTablePost(knex).then(x=>
+      console.log("all schemas migrated")
+    );
+  });
+}
+
+function migrateSchema(knex, Base) {
+  console.log("migrating", Base.table);
+  return new Promise(function(resolve, reject) {
+    Base.mongoose.find().exec((e, x) => {
+      if (x.length === undefined) throw new Error("no length");
+      migrateTable(knex, Base, x).then(x => {
+        console.log(Base.table + " migrated");
+        resolve("done");
+      });
+    });
+  });
 }

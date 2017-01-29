@@ -1,5 +1,6 @@
 //const mongoose = require("mongoose");
 const Knex = require("knex");
+const core = require('./mapschema');
 let knex = null;
 
 const Schema = require("./Schema");
@@ -88,4 +89,9 @@ if (e.PSQL_INIT || true) {
   });
 }
 
-module.exports = exports = { Schema: Schema, model: modelNew, init: init };
+module.exports = exports = { 
+  Schema: Schema, 
+  model: modelNew, 
+  init: init,
+  migrateSchemas: core.migrateSchemas 
+};
