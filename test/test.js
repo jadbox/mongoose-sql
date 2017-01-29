@@ -191,7 +191,6 @@ describe("Mongoose API", function() {
   it("populate many to many", function(d) {
     Package.findByID(5293)
       .populate('recommendedPackages')
-      //.populate('category')
       .exec((e, x) => {
         //console.log('populate find', x.recommendedPackages);
         //console.log('populate find', x.category);
@@ -212,8 +211,28 @@ describe("Mongoose API", function() {
       .exec((e, x) => {
         //console.log('populate find', x.recommendedPackages);
         //console.log('populate find', x.category);
-        console.log(x.name, '-', x.category);
+        //console.log(x.name, '-', x.category);
         
+        assert(!!x.category.title);
+        assert(!!x.category._id);
+        assert(!!x.category);
+        assert(e===null);
+        d();
+    });
+  });
+
+  it("populate one to many + many to many", function(d) {
+    Package.findByID(5293)
+      .populate('recommendedPackages')
+      .populate('category')
+      
+      .exec((e, x) => {
+        assert(!!x.recommendedPackages.length > 0);
+        assert(!!x.recommendedPackages[0].name);
+        assert(!!x.recommendedPackages[0]._id);
+        
+        assert(!!x.category.title);
+        assert(!!x.category._id);
         assert(!!x.category);
         assert(e===null);
         d();

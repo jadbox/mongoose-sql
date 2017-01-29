@@ -3,11 +3,11 @@ const DEBUG = process.env.DEBUG || 1;
 
 // many to many
 function makeAgg(knex, k, field) {
-  return knex.raw('json_agg(x'+k+'.*) AS "' + field+'"');
+  return knex.raw('json_agg(x'+k+') AS "' + field+'"');
 }
 // one to many
 function makeRow(knex, k, field) {
-  return knex.raw('row_to_json(x'+k+'.*) AS "' + field+'"');
+  return knex.raw('row_to_json(x'+k+') AS "' + field+'"');
 }
 
 // Chain operations on find() and findByID
@@ -54,7 +54,7 @@ module.exports = class Query {
     if (this.byID)
       q = q.where(this.schema.table+'._id', this.params);
 
-    // == Nested many to many group
+    // == Nested many-many group
     _.forEach(this.populateFields, (f,K) => {
       const prop = _schema.joins[f];
       if(!prop) return;
@@ -70,13 +70,15 @@ module.exports = class Query {
         );
     });
 
-    // == Nested one to many group
+    // == Nested one-many group
+    const extraOrders = []; // order fix for row_to_json selection
     _.forEach(this.populateFields, (f,K) => {
       const prop = _schema.props[f];
       if(!prop) return;
       //if(!prop) throw new Error('field not found '+f);
 
       const key = 'x'+K;
+      extraOrders.push(key);
       q = q.leftOuterJoin(prop.refTable + ' AS ' + key,
           _schema.table + '.' + f,
           key + '._id'
@@ -84,7 +86,7 @@ module.exports = class Query {
     });
 
     if(this.populateFields.length) 
-      q = q.groupBy(_schema.table+'._id');
+      q = q.groupBy(_schema.table+'._id', ...extraOrders);
 
     // extract single element
     if (this.byID)
