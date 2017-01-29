@@ -1,10 +1,10 @@
-# Mongoose-SQL Translator
+# Mongoose-SQL
 
 <img height="224px" src = "http://t10.deviantart.net/l0aLpKFx8pPp4COINIGMRXIVWuQ=/fit-in/700x350/filters:fixed_height(100,100):origin()/pre05/503a/th/pre/f/2014/341/1/5/rikki_tikki_tavi_by_hidde99-d88zxp6.png"/>
 
-This library covers the basic API surface of Mongoose and translates the models and calls to SQL.
+This library covers the basic API surface of Mongoose to interface and migrate date to PostgreSQL.
 
-For simple use-cases, no project code changes are required aside from a PostgreSQL connection statement.
+For simple use-cases, no project code changes are required aside from a SQL connection statement. This library requires ES6 with Node.JS 6+.
 
 ```js
 var db = require("mongoose-sql");
