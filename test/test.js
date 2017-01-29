@@ -187,5 +187,23 @@ describe("Mongoose API", function() {
     });
   });
 
+ //5,293
+  it("populate many to many", function(d) {
+    Package.findByID(5293)
+      .populate('recommendedPackages')
+      //.populate('category')
+      .exec((e, x) => {
+        //console.log('populate find', x.recommendedPackages);
+        //console.log('populate find', x.category);
+        //console.log(_.keys(x));
+        
+        assert(!!x.recommendedPackages.length > 0);
+        assert(!!x.recommendedPackages[0].name);
+        assert(!!x.recommendedPackages[0]._id);
+        //assert(!!x.featureSticker);
+        assert(e===null);
+        d();
+    });
+  });
 
 });
