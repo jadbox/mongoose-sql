@@ -27,9 +27,9 @@ var knex = db.getKnex();
 
 // Migrations
 var mongoose = require("mongoose");
-var Cat_Schema = new mongoose.Schema(CatModel);
-var Cat = mongoose.model("Cat", Cat_Schema);
-db.migreateSchemas([Cat]).then(function() {
+var Cat_Schema_Mongo = new mongoose.Schema(CatModel);
+var Cat_Mongo = mongoose.model("Cat", Cat_Schema_Mongo);
+db.migreateSchemas([Cat_Mongo]).then(function() {
     console.log("moved data to PostgreSQL from Mongoose");
 });
 
