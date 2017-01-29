@@ -32,7 +32,7 @@ function modelNew(name, schema) {
   return model;
 }
 
-// Sequelize init
+// Sequelize init, returns knex instance
 function init(params) {
   if (DEBUG) console.log("sequelize lib init");
   knex = Knex(params);
@@ -40,6 +40,8 @@ function init(params) {
   if (DEBUG) knex.raw("select 1+1 as result").then(function() {
       console.log("sql connected");
     });
+  
+  return knex;
 }
 
 if (e.PSQL_INIT || true) {
@@ -57,6 +59,7 @@ if (e.PSQL_INIT || true) {
 module.exports = exports = { 
   Schema: Schema, 
   model: modelNew, 
+  getKnex: () => knex,
   init: init, connect: init, createConnection: init,
   migrateSchemas: core.migrateSchemas 
 };
