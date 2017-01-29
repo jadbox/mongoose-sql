@@ -206,4 +206,18 @@ describe("Mongoose API", function() {
     });
   });
 
+  it("populate one to many", function(d) {
+    Package.findByID(5293)
+      .populate('category')
+      .exec((e, x) => {
+        //console.log('populate find', x.recommendedPackages);
+        //console.log('populate find', x.category);
+        console.log(x.name, '-', x.category);
+        
+        assert(!!x.category);
+        assert(e===null);
+        d();
+    });
+  });
+
 });
