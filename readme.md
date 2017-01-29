@@ -54,4 +54,10 @@ Mongoose API reference:
 [http://mongoosejs.com/index.html](http://mongoosejs.com/index.html)
 ### note that not all Mongoose apis are covered
 
-Libraries used: Sequelize, Knex, Lodash
+## Migrations
+
+Based client Schema definitions, the library will try to create PostgreSQL tables with fields of the right types.
+
+* One-to-one relationships will have foreign key constraints
+* Many-to-many relationships will get their own link table
+* Object or list of object key values (without schema links) will become jsonb fields
