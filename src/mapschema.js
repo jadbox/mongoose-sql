@@ -10,8 +10,6 @@ module.exports = {
   findByID,
   create,
   migrateSchemas
-  //migrateTable,
-  //migrateTablePost
 };
 
 const TYPE_JSONB = "jsonb";
@@ -89,7 +87,6 @@ function parse(name, params, knex) {
     .pickBy((v, k) => v.type === typeMap[Number] && isIntProp(k))
     .mapValues(x => typeMap.id)
     .forEach((v, field) => {
-      //console.log(name + ':' + field + ' overriding ', vTypes[field].type + ' to ' + v);
       vTypes[field].type = v;
     });
 
@@ -131,11 +128,6 @@ function parse(name, params, knex) {
     .mapValues(x => ({ default: x[0].default }))
     .value();
 
-  // Lowercase restrictions on array types
-  /*const vLowerCase = _(params)
-      .pickBy(x => x.lowercase)
-      .mapValues(x => ({validate: {isLowercase: true}}))
-      .value();*/
   const refs = getRelations(name, params);
   const v = {};
 
@@ -160,20 +152,6 @@ function parse(name, params, knex) {
   v.table = tableName(name);
   v.name = name;
   v.idField = v.table + "._id";
-
-  //v.refs = refs;
-  //v.increments = 'id'.primary();
-  /*
-    v.uid = {
-      type: Sequelize.INTEGER,
-      primaryKey: true,
-      // Automatically gets converted to SERIAL for postgres
-      autoIncrement: true
-    };
-    v.id = {type: Sequelize.STRING};
-    */
-  //console.log("schema", v);
-  //throw new Error("0-");
   return v;
 }
 
