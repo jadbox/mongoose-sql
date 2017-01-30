@@ -1,0 +1,14 @@
+web:
+  image: node:6
+  command: npm test
+  ports:
+    - "5000:5000"
+  links:
+    - mongo
+    - postgres
+mongo:
+  image: mongo:3.4
+postgres:
+  image: postgres:9.5-alpine
+  environment:
+    - POSTGRES_PASSWORD=postgres
