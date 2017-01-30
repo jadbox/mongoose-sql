@@ -39,7 +39,7 @@ db.migreateSchemas([Cat_Mongo]).then(function() {
     console.log("moved data to PostgreSQL from Mongoose");
 });
 
-// Use PG like Mongoose
+// Use Mongoose-like operations upon PostgreSQL tables
 var Cat_Schema = new db.Schema(CatModel);
 var Cat = db.model("Cat", Cat_Schema);
 Cat.find().exec(muHandler);
