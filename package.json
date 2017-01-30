@@ -10,6 +10,7 @@
   },
   "author": "Jonathan Dunlap",
   "license": "ISC",
+  "keywords": ["mongoose", "sql", "PostgreSQL", "knex", "mongo", "database"],
   "dependencies": {
     "bluebird": "^3.4.7",
     "chai": "^3.5.0",
