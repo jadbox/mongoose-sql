@@ -6,6 +6,10 @@ Mongoose-SQL covers the basic API surface of [Mongoose](http://mongoosejs.com) [
 
 This library requires ES6 with Node.JS 6+ and uses [Knex](http://knexjs.org/) to interface with PostgreSQL.
 
+```bash
+npm install mongoose-sql
+```
+
 ```js
 var db = require("mongoose-sql");
 var e = process.environment;
