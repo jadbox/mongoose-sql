@@ -10,16 +10,26 @@ function makeRow(knex, k, field) {
   return knex.raw('row_to_json(x'+k+') AS "' + field+'"');
 }
 
-// Chain operations on find() and findByID
+// Chain operations on find() and findjustOne
 module.exports = class Query {
-  constructor(model, params, byID, _knex) {
+  constructor(model, params, justOne, _knex) {
     this.knex = _knex;
     this.model = model;
     this.schema = model.schema; // sugar
     this.params = params; // || {};
     this.populateFields = [];
     this.ops = [];
-    this.byID = byID === true; //? "findByID" : "findAll";
+    this.justOne = justOne; //? "findjustOne" : "findAll";
+  }
+  findOne(params) {
+    if(params && this.params) this.params = _.merge(this.params, params);
+    this.justOne = true;
+    return this;
+  }
+  find(params) {
+    findOne(params);
+    this.justOne = false;
+    return this;
   }
   sort(field) {
     // TODO: POPULATE
@@ -47,12 +57,18 @@ module.exports = class Query {
           else throw new Error('unlisted field ' + f);
         })];
 
+    // Select fields
     let q = this.knex.select(...extra).from(_schema.table);
 
     // Ordering
     _.forEach(this.ops, op => q = op(q));
-    if (this.byID)
-      q = q.where(this.schema.table+'._id', this.params);
+
+    // Where clauses
+    if(this.params && _.isObject(this.params)) {
+      q = q.where(this.params);
+    }
+    else if (this.params && !isNaN(parseFloat(this.params)))
+      q = q.where(this.schema.table+'._id', parseFloat(this.params));
 
     // == Nested many-many group
     _.forEach(this.populateFields, (f,K) => {
@@ -89,7 +105,7 @@ module.exports = class Query {
       q = q.groupBy(_schema.table+'._id', ...extraOrders);
 
     // extract single element
-    if (this.byID)
+    if (this.justOne)
       q = q.then(x => x.length > 0 ? x[0] : null);
     
     

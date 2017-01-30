@@ -176,6 +176,28 @@ describe("Mongoose API", function() {
     });
   });
 
+  it("findOne", function(d) {
+    Sticker.findOne({label: 'test123'}).exec((e, x) => {
+      //console.log('found findByID', x);
+      assert(x._id === createdID);
+      assert(x.created);
+      assert(x.label);
+      //assert.ok(e);
+      d();
+    });
+  });
+
+  it("where clause", function(d) {
+    Sticker.where({label: 'test123'}).findOne().exec((e, x) => {
+      //console.log('found findByID', x);
+      assert(x._id === createdID);
+      assert(x.created);
+      assert(x.label);
+      //assert.ok(e);
+      d();
+    });
+  });
+
  it("delete", function(d) {
     const s = new Sticker({ _id: createdID });
     s.remove((e, x) => {
@@ -187,7 +209,6 @@ describe("Mongoose API", function() {
     });
   });
 
- //5,293
   it("populate many to many", function(d) {
     Package.findByID(5293)
       .populate('recommendedPackages')

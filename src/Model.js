@@ -3,11 +3,13 @@ const DEBUG = process.env.DEBUG || 1;
 const Query = require('./Query');
 const core = require('./mapschema');
 
+// Knex db context
 let knex = null;
 function init(_knex) {
   knex = _knex;
   return { Model, ModelInstance, modelFactory };
 }
+
 // Model instance
 class ModelInstance {
   constructor(Schema, vobj) {
@@ -30,7 +32,6 @@ class ModelInstance {
         return x;
       })
       .catch(cb);
-    //this.model.destroy().then(x => cb()).catch(cb);
   }
   save(cb) {
     if( !this.vobj ) throw new Error('empty object to save');
@@ -49,6 +50,8 @@ class ModelInstance {
   }
 }
 
+// Returns a function that creates a ModelInstance
+// Function object has non-instance operation methods (like findByID)
 function modelFactory(name, schema) {
   if (!_.isObject(schema)) throw new Error("no schema");
   if (!_.isString(name)) throw new Error("no name");
@@ -59,7 +62,7 @@ function modelFactory(name, schema) {
   };
 
   // copy static methods over
-  const fields = [ "find", "findByID", "loaded", "setKnex" ];
+  const fields = [ "find", "findByID", "loaded", "setKnex", "findOne", "where" ];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
 
@@ -81,11 +84,17 @@ class Model {
   loaded() {
     return !!this.sqlm;
   }
+  where(params) {
+    return this.find(params);
+  }
   find(params) {
     return new Query(this, params, false, this.knex);
   }
   findByID(id) {
-    return new Query(this, id, true, this.knex);
+    return this.findOne(id);
+  }
+  findOne(params) {
+    return new Query(this, params, true, this.knex);
   }
   remove(vobj, cb) {
     if(!cb) cb = x=>x;

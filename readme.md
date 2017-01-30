@@ -36,6 +36,8 @@ var Cat_Schema = new db.Schema(CatModel);
 var Cat = db.model("Cat", Cat_Schema);
 Cat.find().exec(myHandler); // find() returns all rows
 Cat.findById(123).exec(myHandler); // find by row id
+Cat.findOne({name: 'fluffy'}).exec(myHandler); // findOne
+Cat.where({name: 'fluffy'}).findOne().exec(myHandler); // find by where
 Cat.find().sort('breed').exec(myHandler); // sort
 Cat.find().populate('owner').exec(myHandler); // outer left join
 
