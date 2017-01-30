@@ -42,10 +42,10 @@ db.migreateSchemas([Cat_Mongo]).then(function() {
 // Use Mongoose-like operations upon PostgreSQL tables
 var Cat_Schema = new db.Schema(CatModel);
 var Cat = db.model("Cat", Cat_Schema);
-Cat.find().exec(muHandler);
-Cat.findById().exec(muHandler);
-Cat.find().sort('breed').exec(muHandler);
-Cat.find().populate('owner').exec(muHandler);
+Cat.find().exec(myHandler);
+Cat.findById().exec(myHandler);
+Cat.find().sort('breed').exec(myHandler);
+Cat.find().populate('owner').exec(myHandler);
 
 var simba = new Cat( { CatObject } );
 simba.save(function() {
