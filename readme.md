@@ -31,14 +31,6 @@ db.connect({
 // Get Knex instance if needed
 var knex = db.getKnex();
 
-// Migrations
-var mongoose = require("mongoose");
-var Cat_Schema_Mongo = new mongoose.Schema(CatModel);
-var Cat_Mongo = mongoose.model("Cat", Cat_Schema_Mongo);
-db.migreateSchemas([Cat_Mongo]).then(function() {
-    console.log("moved data to PostgreSQL from Mongoose");
-});
-
 // Use Mongoose-like operations upon PostgreSQL tables
 var Cat_Schema = new db.Schema(CatModel);
 var Cat = db.model("Cat", Cat_Schema);
@@ -53,6 +45,14 @@ simba.save(function() {
 });
 simba.remove(function() {
     
+});
+
+// Migrations
+var mongoose = require("mongoose"); // instance Mongoose
+var Cat_Schema_Mongo = new mongoose.Schema(CatModel); // make a mongoose schema
+var Cat_Mongo = mongoose.model("Cat", Cat_Schema_Mongo); // make a mongoose model
+db.migreateSchemas([Cat_Mongo]).then(function() { // call migreateSchemas with model
+    console.log("moved data to PostgreSQL from Mongoose");
 });
 ```
 
