@@ -1,6 +1,6 @@
 {
   "name": "mongoose-sql",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "src/index.js",
   "scripts": {
@@ -10,7 +10,14 @@
   },
   "author": "Jonathan Dunlap",
   "license": "ISC",
-  "keywords": ["mongoose", "sql", "PostgreSQL", "knex", "mongo", "database"],
+  "keywords": [
+    "mongoose",
+    "sql",
+    "PostgreSQL",
+    "knex",
+    "mongo",
+    "database"
+  ],
   "dependencies": {
     "bluebird": "^3.4.7",
     "chai": "^3.5.0",
