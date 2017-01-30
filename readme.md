@@ -34,10 +34,10 @@ var knex = db.getKnex();
 // Use Mongoose-like operations upon PostgreSQL tables
 var Cat_Schema = new db.Schema(CatModel);
 var Cat = db.model("Cat", Cat_Schema);
-Cat.find().exec(myHandler);
-Cat.findById().exec(myHandler);
-Cat.find().sort('breed').exec(myHandler);
-Cat.find().populate('owner').exec(myHandler);
+Cat.find().exec(myHandler); // find() returns all rows
+Cat.findById(123).exec(myHandler); // find by row id
+Cat.find().sort('breed').exec(myHandler); // sort
+Cat.find().populate('owner').exec(myHandler); // outer left join
 
 var simba = new Cat( { CatObject } );
 simba.save(function() {
