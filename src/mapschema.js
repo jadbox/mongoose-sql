@@ -286,7 +286,13 @@ function correctJsonFields(_schema, obj) {
 
 function removeInvalidKeys(_schema, obj) {
   const w = _.without(_.keys(obj), "__id", ..._schema.fields);
-  if (w.length > 0) console.log(_schema.table + " removed fields", w);
+  
+  // warning on non-matching field
+  if (w.length > 1 && !_schema.fieldWarning) {
+    console.log(_schema.table + " removed fields", _.without(w, '__v'));
+    _schema.fieldWarning = true;
+  }
+
   // take only valid fields
   return filtered = _.omit(obj, "__v", ...w);
 }
@@ -318,8 +324,7 @@ function migrateTable(knex, _schema, objs) {
     //console.log('=======k', field);
     //process.exit(1);
     const val = o[field];
-    if (!val) return;
-    if (!(o.__id >= -1)) return;
+    if (!val && val !== 0) return;
     if (_.isObject(val) || _.isArray(val))
       if(val.length && val.length === 0) return;
 
@@ -363,20 +368,23 @@ function migrateTablePost(knex) {
   const todoMap = _.map(_.cloneDeep(todo), e => {
     e.id = idMap[e.id];
     if (!e.id) throw new Error("inconsistent id record", e.id);
-    // direct relationships
+
+    // direct relationships id mapping
     if (!e.refTable) {
       e.val = idMap[e.val];
       if (!e.val) {
         console.warn(e);
         throw new Error("Ref inconsistent record " + e.val);
       }
-    } else
-      e.val = _.map(e.val, val => {
+    } else {
+      // non-direct many-many relationships id mapping
+      e.val = _(e.val).map(val => {
         // one relationship
         const id = idMap[val];
         if (!id) console.warn("RefList inconsistent record " + val);
-        return id;
-      });
+        return id || null;
+      }).filter(null).value();
+    }
     return e;
   });
 
@@ -391,11 +399,12 @@ function migrateTablePost(knex) {
         .then(x => x);
     } else {
       // save associations
-      return Promise.map(e.val, val =>
-        knex(e.ltable)
+      return Promise.map(e.val, val => {
+        return knex(e.ltable)
           .insert({ [e.field]: val, [e.table]: e.id })
           .returning([[e.field], [e.table]])
-          .then(x => x));
+          .then(x => x);
+      });
     }
   });
 
@@ -413,12 +422,13 @@ function migrateSchemas(knex, mongoose, schemas) {
 }
 
 function migrateSchema(knex, mongoose, Base) {
-  console.log("migrating", Base, Base.table);
+  console.log("migrating", Base.table);
   return new Promise(function(resolve, reject) {
     Base.mongoose.find().exec((e, x) => {
       if (x.length === undefined) throw new Error("no length");
-      migrateTable(knex, Base, x).then(x => {
-        console.log(Base.table + " migrated");
+      migrateTable(knex, Base, x).then(x1 => {
+        if(!x) x = [];
+        console.log(Base.table + " migrated rows " + x.length);
         resolve("done");
       });
     });
