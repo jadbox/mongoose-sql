@@ -49,7 +49,7 @@ simba.remove(function() {
     
 });
 
-// Migrations
+// Migrations (WIP)
 var mongoose = require("mongoose"); // instance Mongoose
 var Cat_Schema_Mongo = new mongoose.Schema(CatModel); // make a mongoose schema
 var Cat_Mongo = mongoose.model("Cat", Cat_Schema_Mongo); // make a mongoose model
@@ -62,7 +62,7 @@ Mongoose API reference:
 [http://mongoosejs.com/index.html](http://mongoosejs.com/index.html)
 ### note that not all Mongoose apis are covered
 
-## Migrations
+## Migrations (WIP)
 
 Based client Schema definitions, the library will try to create PostgreSQL tables with fields of the right types.
 

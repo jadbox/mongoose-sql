@@ -65,7 +65,7 @@ function getRelations(name, params) {
     }))
     .value();
 
-  return [ hasOneType, hasManyTypes ];
+  return [hasOneType, hasManyTypes];
 }
 
 // Makes a clean internal representation to consume
@@ -143,7 +143,7 @@ function parse(name, params, knex) {
   );
 
   // Don't use SQL snakecase in order to preserve field names used by client
-  //v.props = _(v.props).toPairs().map( ([x, y])=>[_.snakeCase(x),y]).fromPairs().value();;
+  //v.props = _(v.props).toPairs().map( ([x, y])=>[_.snakeCase(x),y]).fromPairs().value();
   v.fields = _.keys(v.props);
   v.fields.push("_id");
 
@@ -156,47 +156,63 @@ function parse(name, params, knex) {
 }
 
 function sync(knex, _schema) {
-  let r = knex.schema.createTableIfNotExists(_schema.table, function(table) {
-    table.string("__id");
-    // old ID
-    table.increments("_id");
-    _.forEach(_schema.props, (v, k) => {
-      //console.log('-', k);
-      let z;
-      if (v.type === "string") z = table.text(k);
-      else if (v.type === "boolean") z = table.boolean(k);
-      else if (v.type === "float") z = table.float(k);
-      else if (v.type === "integer") z = table.integer(k);
-      else if (v.type === "date") {
-        z = table.timestamp(k).defaultTo(knex.fn.now());
-      } else if (v.type === "jsonb") z = table.jsonb(k);
-      else if (v.type === "id") z = table.integer(k).unsigned();
-      else if (v.ref) {
-        z = table.integer(k).unsigned();
-        table.foreign(k).references(v.refTable + "._id");
-      }
-      if (!z) {
-        console.warn(_schema.table + ": lacks type for prop " + v.type);
-        return;
-      }
+  // check if table already exists
+  // TODO: cleanup
+  let r = knex.schema
+      .hasTable(_schema.table).then(function(exists) {
+        if(exists) return null;
 
-      if (v.defaut) z = z.defaultTo(v.default);
-      if (v.notNullable) z = z.notNullable();
-    });
-  });
+        let r2 = knex.schema.createTableIfNotExists(_schema.table, function(table) {
+        table.string("__id");
+        // old ID
+        table.increments("_id");
+        _.forEach(_schema.props, (v, k) => {
+          //console.log('-', k);
+          let z;
+          if (v.type === "string")
+            z = table.text(k);
+          else if (v.type === "boolean")
+            z = table.boolean(k);
+          else if (v.type === "float")
+            z = table.float(k);
+          else if (v.type === "integer")
+            z = table.integer(k);
+          else if (v.type === "date") {
+            z = table.timestamp(k).defaultTo(knex.fn.now());
+          } else if (v.type === "jsonb")
+            z = table.jsonb(k);
+          else if (v.type === "id")
+            z = table.integer(k).unsigned();
+          else if (v.ref) {
+            z = table.integer(k).unsigned();
+            table.foreign(k).references(v.refTable + "._id");
+          }
+          if (!z) {
+            console.warn(_schema.table + ": lacks type for prop " + v.type);
+            return;
+          }
 
-  _.forEach(_schema.joins, (v, k) => {
-    console.log("v.ltable", v.ltable);
-    r = r.createTableIfNotExists(v.ltable, function(table) {
-      //table.increments("_id"); no id needed
-      table.integer(_schema.table).unsigned().index();
-      table.foreign(_schema.table).references(_schema.table + "._id");
+          if (v.defaut) z = z.defaultTo(v.default);
+          if (v.notNullable) z = z.notNullable();
+        });
+      });
 
-      table.integer(k).unsigned();
-      // opt: .index()
-      table.foreign(k).references(v.refTable + "._id");
-      table.primary([ _schema.table, k ]); // forced unique
-    });
+      _.forEach(_schema.joins, (v, k) => {
+        console.log("v.ltable", v.ltable);
+        r2 = r2.createTableIfNotExists(v.ltable, function(table) {
+          //table.increments("_id"); no id needed
+          table.integer(_schema.table).unsigned().index();
+          table.foreign(_schema.table).references(_schema.table + "._id");
+
+          table.integer(k).unsigned();
+          // opt: .index()
+          table.foreign(k).references(v.refTable + "._id");
+          table.primary([_schema.table, k]); // forced unique
+        });
+      });
+
+      return r2;
+  
   });
 
   return r;
@@ -245,13 +261,11 @@ function create(knex, _schema, obj) {
       const vo = _schema.joins[k];
       console.log("---------saving into ", vo.ltable, vo.refTable);
       _.forEach(v, vid => {
-        query = query.then(
-          // return row id
-          ids =>
-            knex(vo.ltable)
-              .insert({ [vo.refTable]: ids[0], [k]: vid })
-              .then(x => ids)
-        );
+        query = query.then(// return row id
+        ids =>
+          knex(vo.ltable)
+            .insert({ [vo.refTable]: ids[0], [k]: vid })
+            .then(x => ids));
       });
     })
     .value();
@@ -299,46 +313,44 @@ function migrateTable(knex, _schema, objs) {
   //schemaMap[_schema.table] = _schema;
   objs = _.map(objs, v => moveIDKey(v));
 
-  _.map(
-    _schema.refs,
-    // map over schema refs
-    field => _.map(objs, // extract fields
-    o => {
-      //console.log('=======k', field);
-      //process.exit(1);
-      const val = o[field];
-      if (!val) return;
-      delete o[field];
+  _.map(_schema.refs, // map over schema refs
+  field => _.map(objs, o => { // extract fields
+    //console.log('=======k', field);
+    //process.exit(1);
+    const val = o[field];
+    if (!val) return;
+    if (!(o.__id >= -1)) return;
+    if (_.isObject(val) || _.isArray(val))
+      if(val.length && val.length === 0) return;
 
-      // removed from insert
-      let todoItem = { field, id: o.__id, val, table: _schema.table };
+    delete o[field];
 
-      // save association table for many to many
-      if (_schema.joins[field]) {
-        todoItem = _.merge(todoItem, {
-          refTable: _schema.joins[field].refTable,
-          ltable: _schema.joins[field].ltable
-        });
-      }
-      todo.push(todoItem);
-    })
-  );
+    // removed from insert
+    let todoItem = { field, id: o.__id, val, table: _schema.table };
+
+    // save association table for many to many
+    if (_schema.joins[field]) {
+      todoItem = _.merge(todoItem, {
+        refTable: _schema.joins[field].refTable,
+        ltable: _schema.joins[field].ltable
+      });
+    }
+    todo.push(todoItem);
+  }));
 
   const filtered = _.map(objs, _removeInvalidKeys);
   const jsonbFixed = _.map(filtered, _correctJsonFields);
 
   console.log(_schema.table + " saving " + jsonbFixed.length + " rows");
   console.log();
-  let query = Promise.all(
-    _.map(jsonbFixed, o => {
+  let query = Promise.all(_.map(jsonbFixed, o => {
       return knex(_schema.table)
         .insert(o)
-        .returning([ "_id", "__id" ])
+        .returning(["_id", "__id"])
         .then(x => x); //toPromise
-    })
-  ).then(results => {
+    })).then(results => {
     // save id map
-    _.forEach(results, ([ { _id, __id } ]) => idMap[__id] = _id);
+    _.forEach(results, ([{ _id, __id }]) => idMap[__id] = _id);
     console.log(_schema.table, "idMap", idMap);
     return results;
   });
@@ -358,7 +370,8 @@ function migrateTablePost(knex) {
         console.warn(e);
         throw new Error("Ref inconsistent record " + e.val);
       }
-    } else e.val = _.map(e.val, val => {
+    } else
+      e.val = _.map(e.val, val => {
         // one relationship
         const id = idMap[val];
         if (!id) console.warn("RefList inconsistent record " + val);
@@ -378,31 +391,29 @@ function migrateTablePost(knex) {
         .then(x => x);
     } else {
       // save associations
-      return Promise.map(
-        e.val,
-        val =>
-          knex(e.ltable)
-            .insert({ [e.field]: val, [e.table]: e.id })
-            .returning([ [ e.field ], [ e.table ] ])
-            .then(x => x)
-      );
+      return Promise.map(e.val, val =>
+        knex(e.ltable)
+          .insert({ [e.field]: val, [e.table]: e.id })
+          .returning([[e.field], [e.table]])
+          .then(x => x));
     }
   });
 
   return Promise.all(ps);
 }
 
-function migrateSchemas(knex, schemas) {
-  return Promise.mapSeries(migrateTables, migrateSchema).then(y => {
-    console.log("non-relational schemas migrated")
-    mapschema.migrateTablePost(knex).then(x=>
-      console.log("all schemas migrated")
-    );
+// parse(name, params, knex) {
+function migrateSchemas(knex, mongoose, schemas) {
+  const _migrateSchema = migrateSchema.bind(null, knex, mongoose);
+  //Promise.map(schemas, s => parse() )
+  return Promise.mapSeries(schemas, _migrateSchema).then(y => {
+    console.log("non-relational schemas migrated");
+    migrateTablePost(knex).then(x => console.log("all schemas migrated"));
   });
 }
 
-function migrateSchema(knex, Base) {
-  console.log("migrating", Base.table);
+function migrateSchema(knex, mongoose, Base) {
+  console.log("migrating", Base, Base.table);
   return new Promise(function(resolve, reject) {
     Base.mongoose.find().exec((e, x) => {
       if (x.length === undefined) throw new Error("no length");

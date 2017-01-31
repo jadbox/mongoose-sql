@@ -1,6 +1,6 @@
 //const mongoose = require("mongoose");
 const Knex = require("knex");
-const core = require('./mapschema');
+const core = require("./mapschema");
 let knex = null;
 
 const Schema = require("./Schema");
@@ -40,7 +40,7 @@ function init(params) {
   if (DEBUG) knex.raw("select 1+1 as result").then(function() {
       console.log("sql connected");
     });
-  
+
   return knex;
 }
 
@@ -56,10 +56,12 @@ if (e.PSQL_INIT || true) {
   });
 }
 
-module.exports = exports = { 
-  Schema: Schema, 
-  model: modelNew, 
+module.exports = exports = {
+  Schema: Schema,
+  model: modelNew,
   getKnex: () => knex,
-  init: init, connect: init, createConnection: init,
-  migrateSchemas: core.migrateSchemas 
+  init: init,
+  connect: init,
+  createConnection: init,
+  migrateSchemas: core.migrateSchemas
 };

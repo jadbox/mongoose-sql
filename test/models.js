@@ -1,4 +1,8 @@
-function init(Schema) {
+const _Schema = require('mongoose').Schema;
+
+function init(Schema) { //Schema
+  if(!Schema) Schema = _Schema;
+  
   const Package = {
 
     name: {
@@ -239,11 +243,120 @@ function init(Schema) {
     }
   };
 
+  const Cache = new Schema({
+    url: {
+      type: String
+    },
+    response: {
+      type: String
+    },
+    timeStamp: {
+      type: Date,
+      expires: 2628000
+    }
+  });
+
+
+  const LogLevel = {
+    level: {
+      type: String,
+      default: 'error'
+    }
+  };
+
+  const Post = {
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    message: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    owner: {
+      type: Schema.ObjectId,
+      ref: 'User',
+      type: String
+    }
+  };
+
+  const User = {
+    name: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    email: {
+      type: String,
+      trim: true,
+      unique: true,
+      default: '',
+      required: 'Please fill in your email'
+    },
+    password: {
+      type: String,
+      default: ''
+    },
+    salt: { type: String },
+    role:{
+      type: String,
+      default: 'user'
+    },
+    updated: { type: Date },
+    created: {
+      type: Date,
+      default: Date.now
+    }
+  };
+
+  Banner = {
+    created: {
+      type: Date,
+      default: Date.now
+    },
+    title: {
+      type: String,
+      default: '',
+      trim: true,
+      required: 'Title cannot be blank!'
+    },
+    image: {
+      type: String,
+      trim: true,
+      required: 'Banners must have images!'
+    },
+    foreground: {
+      type: String,
+      trim: true
+    },
+    priority: { type: Number },
+    active: { type: Boolean },
+    activeDate: { type: Date },
+    headline:{
+      type: String,
+      required: 'Banners must have headlines!'
+    },
+    caption: { type: String },
+    captionPosition: { type: String },
+    captionColor: { type: String },
+    package: {
+      type: Schema.ObjectId,
+      ref: 'Package',
+      required: 'Banners must be associated with a package!'
+    }
+  };
+
   return {
     Package,
     Category,
-    Sticker
-  }
+    Sticker,
+    Cache,
+    LogLevel,
+    Post,
+    User,
+    Banner
+  };
 
 }
 

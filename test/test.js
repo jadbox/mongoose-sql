@@ -1,8 +1,8 @@
 // Simple mongoose test
 // TODO: refactor to unit test
 const assert = require("chai").assert;
-const Promise = require('bluebird');
-const _ = require('lodash');
+const Promise = require("bluebird");
+const _ = require("lodash");
 
 const mp = require("../src/index.js");
 const Schema = mp.Schema;
@@ -50,7 +50,6 @@ describe("utils", function() {
     ]);
     d();
   });
-
   // ====================
   /*
   it("creates internal schema representation", function(d) {
@@ -115,24 +114,24 @@ describe("utils", function() {
   });*/
 });
 describe("Mongoose API", function() {
-  const PackageSchema = new Schema(Models.Package)
+  const PackageSchema = new Schema(Models.Package);
 
-  const Package = mp.model('Package', PackageSchema)
+  const Package = mp.model("Package", PackageSchema);
 
   // Category
   const CategorySchema = new Schema(Models.Category);
 
-  const Category = mp.model('Category', CategorySchema);
+  const Category = mp.model("Category", CategorySchema);
 
   // Sticker Model
 
   const StickerSchema = new Schema(Models.Sticker);
 
-  const Sticker = mp.model('Sticker', StickerSchema);
+  const Sticker = mp.model("Sticker", StickerSchema);
 
   it("find", function(d) {
     Sticker.find().exec((e, x) => {
-      console.log('found find', x.length);
+      console.log("found find", x.length);
       assert(x.length > 0);
       //assert.ok(e);
       d();
@@ -140,13 +139,19 @@ describe("Mongoose API", function() {
   });
 
   it("find Sorted", function(d) {
-    Sticker.find().sort('label').exec((e, x) => {
+    Sticker.find().sort("label").exec((e, x) => {
       //console.log('Sorted find', x).length;
       assert(x.length > 0);
-      assert(_.reduce(x, (acc,i) => {
-        assert(i.label > acc); 
-        return i.label;
-      }, ''));
+      assert(
+        _.reduce(
+          x,
+          (acc, i) => {
+            assert(i.label > acc);
+            return i.label;
+          },
+          ""
+        )
+      );
       //assert.ok(e);
       d();
     });
@@ -154,12 +159,12 @@ describe("Mongoose API", function() {
 
   let createdID = -1;
   it("create", function(d) {
-    const s = new Sticker({label: 'test123'});
+    const s = new Sticker({ label: "test123" });
     s.save((e, x) => {
       //console.log('create', x);
       createdID = x;
       assert(!!x);
-      assert(e===null);
+      assert(e === null);
       //assert.ok(e);
       d();
     });
@@ -177,7 +182,7 @@ describe("Mongoose API", function() {
   });
 
   it("findOne", function(d) {
-    Sticker.findOne({label: 'test123'}).exec((e, x) => {
+    Sticker.findOne({ label: "test123" }).exec((e, x) => {
       //console.log('found findByID', x);
       assert(x._id === createdID);
       assert(x.created);
@@ -188,7 +193,7 @@ describe("Mongoose API", function() {
   });
 
   it("where clause", function(d) {
-    Sticker.where({label: 'test123'}).findOne().exec((e, x) => {
+    Sticker.where({ label: "test123" }).findOne().exec((e, x) => {
       //console.log('found findByID', x);
       assert(x._id === createdID);
       assert(x.created);
@@ -198,11 +203,11 @@ describe("Mongoose API", function() {
     });
   });
 
- it("delete", function(d) {
+  it("delete", function(d) {
     const s = new Sticker({ _id: createdID });
     s.remove((e, x) => {
       assert(!!x);
-      assert(e===null);
+      assert(e === null);
       assert(x === createdID);
       //assert.ok(e);
       d();
@@ -210,54 +215,49 @@ describe("Mongoose API", function() {
   });
 
   it("populate many to many", function(d) {
-    Package.findByID(5293)
-      .populate('recommendedPackages')
-      .exec((e, x) => {
-        //console.log('populate find', x.recommendedPackages);
-        //console.log('populate find', x.category);
-        //console.log(_.keys(x));
-        
-        assert(!!x.recommendedPackages.length > 0);
-        assert(!!x.recommendedPackages[0].name);
-        assert(!!x.recommendedPackages[0]._id);
-        //assert(!!x.featureSticker);
-        assert(e===null);
-        d();
+    Package.findByID(5293).populate("recommendedPackages").exec((e, x) => {
+      //console.log('populate find', x.recommendedPackages);
+      //console.log('populate find', x.category);
+      //console.log(_.keys(x));
+
+      assert(!!x.recommendedPackages.length > 0);
+      assert(!!x.recommendedPackages[0].name);
+      assert(!!x.recommendedPackages[0]._id);
+      //assert(!!x.featureSticker);
+      assert(e === null);
+      d();
     });
   });
 
   it("populate one to many", function(d) {
-    Package.findByID(5293)
-      .populate('category')
-      .exec((e, x) => {
-        //console.log('populate find', x.recommendedPackages);
-        //console.log('populate find', x.category);
-        //console.log(x.name, '-', x.category);
-        
-        assert(!!x.category.title);
-        assert(!!x.category._id);
-        assert(!!x.category);
-        assert(e===null);
-        d();
+    Package.findByID(5293).populate("category").exec((e, x) => {
+      //console.log('populate find', x.recommendedPackages);
+      //console.log('populate find', x.category);
+      //console.log(x.name, '-', x.category);
+
+      assert(!!x.category.title);
+      assert(!!x.category._id);
+      assert(!!x.category);
+      assert(e === null);
+      d();
     });
   });
 
   it("populate one to many + many to many", function(d) {
-    Package.findByID(5293)
-      .populate('recommendedPackages')
-      .populate('category')
-      
+    Package
+      .findByID(5293)
+      .populate("recommendedPackages")
+      .populate("category")
       .exec((e, x) => {
         assert(!!x.recommendedPackages.length > 0);
         assert(!!x.recommendedPackages[0].name);
         assert(!!x.recommendedPackages[0]._id);
-        
+
         assert(!!x.category.title);
         assert(!!x.category._id);
         assert(!!x.category);
-        assert(e===null);
+        assert(e === null);
         d();
-    });
+      });
   });
-
 });

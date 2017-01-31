@@ -1,5 +1,5 @@
 const _ = require("lodash");
-//const mongoose = require("mongoose");
+const Mongoose_Schema = require('mongoose').Schema;
 
 const DEBUG = process.env.DEBUG || 1;
 
@@ -12,6 +12,6 @@ module.exports = class Schema {
   }
 
   static get ObjectId() {
-    return null; //mongoose.Schema;
+    return Mongoose_Schema.ObjectId;
   }
 };

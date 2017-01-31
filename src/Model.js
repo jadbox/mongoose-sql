@@ -1,7 +1,7 @@
 const _ = require("lodash");
 const DEBUG = process.env.DEBUG || 1;
-const Query = require('./Query');
-const core = require('./mapschema');
+const Query = require("./Query");
+const core = require("./mapschema");
 
 // Knex db context
 let knex = null;
@@ -17,15 +17,18 @@ class ModelInstance {
     //this.model = model;
     this.Schema = Schema; // sugar
     //console.log('this.Schema', this.Schema)
-    if(!this.Schema.table) throw new Error('invalid table');
+    if (!this.Schema.table) throw new Error("invalid table");
     //this.sqlz = model.create(vbo);
   }
-  delete(cb) { return remove(cb); } // alias
+  delete(cb) {
+    return remove(cb);
+  } // alias
   // todo: removeBy
   remove(cb) {
-    if( !this.vobj._id ) throw new Error('invalid _id');
-    return this.knex(this.Schema.table)
-      .where('_id', this.vobj._id)
+    if (!this.vobj._id) throw new Error("invalid _id");
+    return this
+      .knex(this.Schema.table)
+      .where("_id", this.vobj._id)
       .delete()
       .then(x => {
         cb(null, this.vobj._id);
@@ -34,15 +37,16 @@ class ModelInstance {
       .catch(cb);
   }
   save(cb) {
-    if( !this.vobj ) throw new Error('empty object to save');
-    return this.knex  //this.model.save(this.vobj)
+    if (!this.vobj) throw new Error("empty object to save");
+    return this.knex //this.model.save(this.vobj)
       .insert(this.vobj)
       .into(this.Schema.table)
-      .returning('_id')
+      .returning("_id")
       .then(x => {
         cb(null, x[0]);
         return x;
-      }).catch(cb)
+      })
+      .catch(cb);
   }
   setKnex(db) {
     this.knex = db;
@@ -62,7 +66,7 @@ function modelFactory(name, schema) {
   };
 
   // copy static methods over
-  const fields = [ "find", "findByID", "loaded", "setKnex", "findOne", "where" ];
+  const fields = ["find", "findByID", "loaded", "setKnex", "findOne", "where"];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
 
@@ -75,7 +79,6 @@ class Model {
     this.name = name;
     this.SchemaWrapper = schema;
     if (DEBUG) console.log("-- parsing " + name + " --");
-    
   }
   create(vobj) {
     const m = new ModelInstance(this.schema, vobj);
@@ -97,7 +100,7 @@ class Model {
     return new Query(this, params, true, this.knex);
   }
   remove(vobj, cb) {
-    if(!cb) cb = x=>x;
+    if (!cb) cb = x => x;
     return this.create(vobj).save(cb);
   }
   save(vobj, opts) {
