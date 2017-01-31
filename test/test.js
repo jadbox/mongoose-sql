@@ -52,7 +52,7 @@ describe("utils", function() {
     d();
   });
   // ====================
-  /*
+  /* TODO Migration tests
   it("creates internal schema representation", function(d) {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
@@ -80,30 +80,6 @@ describe("utils", function() {
   */
   /*
   // ====================
-  it("query all", function(d) {
-    console.log("-");
-    const x = mapschema.parse("Package", Models.Package, knex);
-    //console.log("parse\n", x);
-    const y = mapschema.find(knex, x)
-    const y1 = y.toString();
-    console.log("find\n", y1);
-    y.then(x=>{
-      console.log('done', JSON.stringify(x));
-      d();
-    });
-    
-  });
-
-  it("query by id", function(d) {
-    console.log("-");
-    const x = mapschema.parse("Package", Models.Package, knex);
-    //console.log("parse\n", x);
-    const y = mapschema.findByID(knex, x, 0).toString();
-    console.log("findByID\n", y);
-    d()
-  });
-
-  // ====================
   it("create", function(d) {
     console.log("-");
     const x = mapschema.parse("Package", Models.Package, knex);
@@ -114,6 +90,7 @@ describe("utils", function() {
     d()
   });*/
 });
+
 describe("Mongoose API", function() {
   const PackageSchema = new Schema(Models.Package);
   const Package = mp.model("Package", PackageSchema);
@@ -172,6 +149,14 @@ describe("Mongoose API", function() {
       assert(x.created);
       assert(x.label);
       //assert.ok(e);
+      d();
+    });
+  });
+
+  it("findByID using string id", function(d) {
+    Sticker.findByID('' + createdID.toString()).exec((e, x) => {
+      assert(x._id === createdID);
+      assert(x.label);
       d();
     });
   });
