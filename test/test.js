@@ -28,8 +28,9 @@ const noPG = { client: "pg" };
 const connectionParams = localPG;
 
 //localPG noPG
+let knex;
 describe("utils", function() {
-  let knex = require("knex")(connectionParams);
+  knex = require("knex")(connectionParams);
 
   it("finds relative tables", function(d) {
     const x = mapschema.getRelations("Package", Models.Package);
@@ -115,18 +116,12 @@ describe("utils", function() {
 });
 describe("Mongoose API", function() {
   const PackageSchema = new Schema(Models.Package);
-
   const Package = mp.model("Package", PackageSchema);
 
-  // Category
   const CategorySchema = new Schema(Models.Category);
-
   const Category = mp.model("Category", CategorySchema);
 
-  // Sticker Model
-
   const StickerSchema = new Schema(Models.Sticker);
-
   const Sticker = mp.model("Sticker", StickerSchema);
 
   it("find", function(d) {
@@ -183,7 +178,7 @@ describe("Mongoose API", function() {
 
   it("findOne", function(d) {
     Sticker.findOne({ label: "test123" }).exec((e, x) => {
-      //console.log('found findByID', x);
+      //console.log('found findOne', x);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -194,7 +189,7 @@ describe("Mongoose API", function() {
 
   it("where clause", function(d) {
     Sticker.where({ label: "test123" }).findOne().exec((e, x) => {
-      //console.log('found findByID', x);
+      //console.log('found where.findOne', x);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -214,8 +209,18 @@ describe("Mongoose API", function() {
     });
   });
 
+  let complexPackageID; // used for later tests on associations
+  it('get id of a complex package', function(d) {
+    knex.select('*').from('package_recommended_packages').limit(3).then(x=>{
+      assert(x.length > 0);
+      assert(x[0].package);
+      complexPackageID = x[0].package;
+      d();
+    });
+  });
+
   it("populate many to many", function(d) {
-    Package.findByID(5293).populate("recommendedPackages").exec((e, x) => {
+    Package.findByID(complexPackageID).populate("recommendedPackages").exec((e, x) => {
       //console.log('populate find', x.recommendedPackages);
       //console.log('populate find', x.category);
       //console.log(_.keys(x));
@@ -230,7 +235,7 @@ describe("Mongoose API", function() {
   });
 
   it("populate one to many", function(d) {
-    Package.findByID(5293).populate("category").exec((e, x) => {
+    Package.findByID(complexPackageID).populate("category").exec((e, x) => {
       //console.log('populate find', x.recommendedPackages);
       //console.log('populate find', x.category);
       //console.log(x.name, '-', x.category);
@@ -245,10 +250,11 @@ describe("Mongoose API", function() {
 
   it("populate one to many + many to many", function(d) {
     Package
-      .findByID(5293)
+      .findByID(complexPackageID)
       .populate("recommendedPackages")
       .populate("category")
       .exec((e, x) => {
+        assert(x._id===complexPackageID);
         assert(!!x.recommendedPackages.length > 0);
         assert(!!x.recommendedPackages[0].name);
         assert(!!x.recommendedPackages[0]._id);

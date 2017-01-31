@@ -8,7 +8,7 @@ module.exports = class Schema {
   // Field type conversion (non-collection)
   constructor(params, options) {
     this.def = params;
-    this.obj = def; // for Mongoose compatibility
+    this.obj = this.def; // for Mongoose compatibility
     this.options = options; // unused
     //if (CONNECT_MONGO) this.mongo = new monSchema(params);
   }

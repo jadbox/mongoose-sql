@@ -356,7 +356,7 @@ function migrateTable(knex, _schema, objs) {
     })).then(results => {
     // save id map
     _.forEach(results, ([{ _id, __id }]) => idMap[__id] = _id);
-    console.log(_schema.table, "idMap", idMap);
+    //console.log(_schema.table, "idMap", idMap);
     return results;
   });
 
@@ -414,7 +414,6 @@ function migrateTablePost(knex) {
 // parse(name, params, knex) {
 function migrateSchemas(knex, mongoose, schemas) {
   const _migrateSchema = migrateSchema.bind(null, knex, mongoose);
-  //Promise.map(schemas, s => parse() )
   return Promise.mapSeries(schemas, _migrateSchema).then(y => {
     console.log("non-relational schemas migrated");
     migrateTablePost(knex).then(x => console.log("all schemas migrated"));
