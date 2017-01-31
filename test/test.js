@@ -251,4 +251,18 @@ describe("Mongoose API", function() {
         d();
       });
   });
+
+  // save associations:
+  /*
+  it("create", function(d) {
+    const s = new Sticker({ label: "test123" });
+    s.save((e, x) => {
+      //console.log('create', x);
+      createdID = x;
+      assert(!!x);
+      assert(e === null);
+      //assert.ok(e);
+      d();
+    });
+  });*/
 });

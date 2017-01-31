@@ -7,10 +7,19 @@ const DEBUG = process.env.DEBUG || 1;
 module.exports = class Schema {
   // Field type conversion (non-collection)
   constructor(params, options) {
+    this.methods = {};
+    this.statics = {}; // TODO research this in Mongoose
+
     this.def = params;
     this.obj = this.def; // for Mongoose compatibility
     this.options = options; // unused
     //if (CONNECT_MONGO) this.mongo = new monSchema(params);
+  }
+
+  // TODO
+  // actionName == save
+  pre(actionName, dec) {
+    console.log('TODO pre');
   }
 
   static get ObjectId() {
