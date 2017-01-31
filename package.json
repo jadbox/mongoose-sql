@@ -18,6 +18,10 @@
     "mongo",
     "database"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jadbox/mongoose-sql"
+  },
   "dependencies": {
     "bluebird": "^3.4.7",
     "chai": "^3.5.0",
