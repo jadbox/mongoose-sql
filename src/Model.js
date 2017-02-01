@@ -56,15 +56,9 @@ class ModelInstance {
 
 // Returns a function that creates a ModelInstance
 // Function object has non-instance operation methods (like findByID)
-// 2nd param schema is optional if cached before
-let schemaCache = {};
 function modelFactory(name, schema) {
-  if (!_.isObject(schema)) {
-    schema = schemaCache[name]; // pull from cache
-    if(!schema) new Error("no schema");
-  }
+  if (!_.isObject(schema) || !schema) new Error("no schema");
   if (!_.isString(name)) throw new Error("no name");
-  schemaCache[name] = schema;
 
   const model = new Model(name, schema);
   const modelType = function(vbo) {

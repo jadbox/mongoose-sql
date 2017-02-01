@@ -15,14 +15,25 @@ const CONNECT_MONGO = e.CONNECT_MONGO || false;
 const SQLZ_FORCE = true;
 // delete and recreate sql tables? #caution
 // const DEBUG_SEQUELIZE = false;
+
+// Global state used to replicate Mongoose registry
 const models = {};
-const getModel = function(x) {
-  if (!models[x]) throw new Error("Model not loaded: " + x);
-  return models[x];
-};
+
+class Connection {
+  constructor(knex) {
+    this.knex = knex;
+  }
+  on(name, fn) {
+    //name == connected
+    if(name === 'connected') 
+      setTimeout(x=>fn(), 100); // connection delay
+  }
+}
 
 // Model factor method: returns Model
+// 2nd param schema is optional if cached before
 function modelNew(name, schema) {
+  if(!schema) schema = models[name];
   const model = modelFactory(name, schema);
   model.setKnex(knex);
   // new Model(name, schema);
@@ -33,19 +44,22 @@ function modelNew(name, schema) {
 }
 
 // Sequelize init, returns knex instance
-function init(params) {
+function connect(params) {
   if (DEBUG) console.log("sequelize lib init");
-  knex = Knex(params);
-
-  if (DEBUG) knex.raw("select 1+1 as result").then(function() {
+  if(!knex) {
+    knex = Knex(params);
+    if (DEBUG) knex.raw("select 1+1 as result").then(function() {
       console.log("sql connected");
     });
+  }
 
-  return knex;
+  return {
+    connection: new Connection(knex)
+  };
 }
 
 if (e.PSQL_INIT || true) {
-  init({
+  connect({
     client: e.DB_CLIENT || "pg",
     connection: {
       host: e.DB_HOST || "127.0.0.1",
@@ -60,8 +74,8 @@ module.exports = exports = {
   Schema: Schema,
   model: modelNew,
   getKnex: () => knex,
-  init: init,
-  connect: init,
-  createConnection: init,
+  init: connect,
+  connect: connect,
+  createConnection: connect,
   migrateSchemas: core.migrateSchemas
 };

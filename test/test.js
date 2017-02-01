@@ -103,8 +103,8 @@ describe("Mongoose API", function() {
 
   it("find", function(d) {
     Sticker.find().exec((e, x) => {
-      console.log("found find", x.length);
-      assert(x.length > 0);
+      //console.log("found find", x.length);
+      assert(x.length > 5);
       //assert.ok(e);
       d();
     });
