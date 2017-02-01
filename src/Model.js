@@ -69,6 +69,7 @@ function modelFactory(name, schema) {
   const fields = ["find", "findByID", "loaded", "setKnex", "findOne", "where"];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
+  modelType.schema = model.schema;
 
   return modelType;
 }
@@ -77,11 +78,11 @@ function modelFactory(name, schema) {
 class Model {
   constructor(name, schema) {
     this.name = name;
-    this.SchemaWrapper = schema;
+    this.schema = schema;
     if (DEBUG) console.log("-- parsing " + name + " --");
   }
   create(vobj) {
-    const m = new ModelInstance(this.schema, vobj);
+    const m = new ModelInstance(this._schema, vobj);
     return m.setKnex(this.knex);
   }
   loaded() {
@@ -111,7 +112,7 @@ class Model {
   setKnex(db) {
     this.knex = db;
 
-    this.schema = core.parse(this.name, this.SchemaWrapper.def, this.knex);
+    this._schema = core.parse(this.name, this.schema.def, this.knex);
     return this;
   }
 }

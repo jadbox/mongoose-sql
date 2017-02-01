@@ -15,7 +15,7 @@ module.exports = class Query {
   constructor(model, params, justOne, _knex) {
     this.knex = _knex;
     this.model = model;
-    this.schema = model.schema; // sugar
+    this.schema = model._schema; // sugar
     this.params = params; // || {};
     this.populateFields = [];
     this.ops = [];
@@ -35,6 +35,12 @@ module.exports = class Query {
     // TODO: POPULATE
     this.ops.push(q => q.orderBy(this.schema.table + "." + field)); //'desc'
     return this;
+  }
+  select(field) {
+    if(field.charAt(0) === '-') console.log('TODO select by', field);
+    else throw new Error('additional select field', field);
+    return this;
+    // TODO: secondary select
   }
   populate(model1, model2) {
     // TODO: POPULATE

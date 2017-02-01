@@ -22,6 +22,14 @@ module.exports = class Schema {
     console.log('TODO pre');
   }
 
+  path(p) {
+    return {
+      validate: (v, onErrorMsg) => {
+        // TODO stub
+      }
+    }
+  }
+
   static get ObjectId() {
     return Mongoose_Schema.ObjectId;
   }
