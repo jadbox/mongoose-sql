@@ -1,6 +1,6 @@
 {
   "name": "mongoose-sql",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "",
   "main": "src/index.js",
   "scripts": {
