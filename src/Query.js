@@ -51,17 +51,24 @@ module.exports = class Query {
   exec(cb) {
     // if (DEBUG) console.log("exec", this.method);
     const _schema = this.schema;
+    if(!_schema) throw new Error('missing schema state');
+
     const many = makeAgg.bind(null, this.knex);
     const one = makeRow.bind(null, this.knex);
 
-    // aggregate fields
+    // aggregate fields with any needed join table columns
     const extra = [_schema.table + ".*", ..._.map(this.populateFields, (
         f,
         k
       ) => {
         if (_schema.joins[f]) return many(k, f);
         else if (_schema.props[f]) return one(k, f);
-        else throw new Error("unlisted field " + f);
+        else {
+          console.log( _schema );
+          console.log( _.keys(_schema.joins) );
+          console.log( _.keys(_schema.props) );
+          throw new Error("unlisted field " + f);
+        }
       })];
 
     // Select fields

@@ -10,8 +10,8 @@ module.exports = class Schema {
     this.methods = {};
     this.statics = {}; // TODO research this in Mongoose
 
-    this.def = params;
-    this.obj = this.def; // for Mongoose compatibility
+    //this.def = params;
+    this.obj = params; // for Mongoose compatibility
     this.options = options; // unused
     //if (CONNECT_MONGO) this.mongo = new monSchema(params);
   }

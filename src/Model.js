@@ -111,8 +111,8 @@ class Model {
   }
   setKnex(db) {
     this.knex = db;
-
-    this._schema = core.parse(this.name, this.schema.def, this.knex);
+    // if(_.toLower(this.name)==='package') console.log("==", this.name, this.schema.obj);
+    this._schema = core.parse(this.name, this.schema.obj, this.knex);
     return this;
   }
 }

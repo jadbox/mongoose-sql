@@ -33,7 +33,9 @@ class Connection {
 // Model factor method: returns Model
 // 2nd param schema is optional if cached before
 function modelNew(name, schema) {
-  if(!schema) schema = models[name];
+  if(models[name]) return models[name];
+
+  if(!schema) throw new Error('no schema provided or in cache: ' + name);
   const model = modelFactory(name, schema);
   model.setKnex(knex);
   // new Model(name, schema);
