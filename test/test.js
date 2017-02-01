@@ -219,15 +219,30 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("populate one to many", function(d) {
+  it("findByID with one to many #1", function(d) {
     Package.findByID(complexPackageID).populate("category").exec((e, x) => {
-      //console.log('populate find', x.recommendedPackages);
-      //console.log('populate find', x.category);
-      //console.log(x.name, '-', x.category);
-
       assert(!!x.category.title);
       assert(!!x.category._id);
       assert(!!x.category);
+      assert(e === null);
+      d();
+    });
+  });
+
+  it("find all with one to one #2", function(d) {
+    Package.find().populate("category").exec((e, x) => {
+      const hasCategory = _.filter(x, xx => xx.category && xx.category._id);
+      assert(hasCategory.length > 1);
+      assert(!!hasCategory[0]._id);
+      assert(e === null);
+      d();
+    });
+  });
+
+  it("find all with one to one #3", function(d) {
+    Package.find().populate("featureSticker").exec((e, x) => {
+      const hasCategory = _.filter(x, xx => xx.featureSticker);
+      assert(hasCategory.length === 0);
       assert(e === null);
       d();
     });
