@@ -1,7 +1,7 @@
-const _ = require("lodash");
+const _ = require('lodash');
 const DEBUG = process.env.DEBUG || 1;
-const Query = require("./Query");
-const core = require("./mapschema");
+const Query = require('./Query');
+const core = require('./mapschema');
 
 // Knex db context
 let knex = null;
@@ -17,7 +17,7 @@ class ModelInstance {
     //this.model = model;
     this.Schema = Schema; // sugar
     //console.log('this.Schema', this.Schema)
-    if (!this.Schema.table) throw new Error("invalid table");
+    if (!this.Schema.table) throw new Error('invalid table');
     //this.sqlz = model.create(vbo);
   }
   delete(cb) {
@@ -25,29 +25,56 @@ class ModelInstance {
   } // alias
   // todo: removeBy
   remove(cb) {
-    if (!this.vobj._id) throw new Error("invalid _id");
+    const id = this.vobj._id;
+    if (!id) throw new Error('invalid _id');
     return this
       .knex(this.Schema.table)
-      .where("_id", this.vobj._id)
+      .where('_id', id)
       .delete()
       .then(x => {
-        cb(null, this.vobj._id);
-        return x;
+        if(cb) cb(null, id);
+        return id;
       })
       .catch(cb);
   }
+
   save(cb) {
-    if (!this.vobj) throw new Error("empty object to save");
+    const vobj = this.vobj;
+    if (!vobj) throw new Error('empty object to save');
+    const removedJoins = _(vobj).pickBy( (v,k) => !this.Schema.joins[k] ).value(); // remove joins
     return this.knex //this.model.save(this.vobj)
-      .insert(this.vobj)
+      .insert(removedJoins)
       .into(this.Schema.table)
-      .returning("_id")
-      .then(x => {
-        cb(null, x[0]);
-        return x;
+      .returning('_id')
+      .then( ids => vobj._id = ids[0] ) // save model's id
+      .then( id => this._saveAssociations(id).then(()=>id) )
+      .then(id => {
+        if(cb) cb(null, id);
+        return id;
       })
       .catch(cb);
   }
+
+  _saveAssociations(id) {
+    let q = Promise.resolve(id);
+    const s = this.Schema;
+    // for each join field
+    _.forEach(s.joins, (j,key) => {
+      if(!this.vobj[key]) {
+        console.log('no relationship elements to save');
+        return;
+      }
+      //console.log('joining', key);
+      const batch = _.map(this.vobj[key], val =>
+        ({ [key]: val, [s.table]: id })
+      );
+      // Insert all many related elements to field at once
+      if(batch.length > 0) q = q.then(() => this.knex.batchInsert(j.ltable, batch));
+    });
+
+    return q;
+  }
+
   setKnex(db) {
     this.knex = db;
     return this;
@@ -57,8 +84,8 @@ class ModelInstance {
 // Returns a function that creates a ModelInstance
 // Function object has non-instance operation methods (like findByID)
 function modelFactory(name, schema) {
-  if (!_.isObject(schema) || !schema) new Error("no schema");
-  if (!_.isString(name)) throw new Error("no name");
+  if (!_.isObject(schema) || !schema) new Error('no schema');
+  if (!_.isString(name)) throw new Error('no name');
 
   const model = new Model(name, schema);
   const modelType = function(vbo) {
@@ -66,7 +93,7 @@ function modelFactory(name, schema) {
   };
 
   // copy static methods over
-  const fields = ["find", "findByID", "loaded", "setKnex", "findOne", "where"];
+  const fields = ['find', 'findByID', 'loaded', 'setKnex', 'findOne', 'where'];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
   modelType.schema = model.schema;
@@ -79,7 +106,7 @@ class Model {
   constructor(name, schema) {
     this.name = name;
     this.schema = schema;
-    if (DEBUG) console.log("-- parsing " + name + " --");
+    if (DEBUG) console.log('-- parsing ' + name + ' --');
   }
   create(vobj) {
     const m = new ModelInstance(this._schema, vobj);
@@ -105,13 +132,13 @@ class Model {
     return this.create(vobj).save(cb);
   }
   save(vobj, opts) {
-    if (!vobj) throw new Error("vobj is null");
+    if (!vobj) throw new Error('vobj is null');
     const all_opts = _.merge(SQLZ_INCLUDE_ALL, opts || {});
     return this.sqlm.create(vobj, all_opts);
   }
   setKnex(db) {
     this.knex = db;
-    // if(_.toLower(this.name)==='package') console.log("==", this.name, this.schema.obj);
+    // if(_.toLower(this.name)==='package') console.log('==', this.name, this.schema.obj);
     this._schema = core.parse(this.name, this.schema.obj, this.knex);
     return this;
   }

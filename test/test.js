@@ -1,51 +1,51 @@
 // Simple mongoose test
 // TODO: refactor to unit test
-const assert = require("chai").assert;
-const Promise = require("bluebird");
-const _ = require("lodash");
+const assert = require('chai').assert;
+const Promise = require('bluebird');
+const _ = require('lodash');
 
-const mp = require("../src/index.js");
+const mp = require('../src/index.js');
 const Schema = mp.Schema;
-const Models = require("./models").init(Schema);
+const Models = require('./models').init(Schema);
 
-const mapschema = require("../src/mapschema");
+const mapschema = require('../src/mapschema');
 
 const localPG = {
-  client: "pg",
+  client: 'pg',
   connection: {
-    user: "jonathan.dunlap",
-    database: "test",
+    user: 'jonathan.dunlap',
+    database: 'test',
     port: 5432,
-    host: "localhost",
-    password: ""
+    host: 'localhost',
+    password: ''
   },
   debug: false,
   pool: { min: 1, max: 2 }
 };
 
-const noPG = { client: "pg" };
+const noPG = { client: 'pg' };
 
 const connectionParams = localPG;
 
 //localPG noPG
 let knex;
-describe("utils", function() {
-  knex = require("knex")(connectionParams);
+describe('utils', function() {
+  knex = require('knex')(connectionParams);
 
-  it("finds relative tables", function(d) {
-    const x = mapschema.getRelations("Package", Models.Package);
+  it('finds relative tables', function(d) {
+    const x = mapschema.getRelations('Package', Models.Package);
     //console.log(x);
     assert.deepEqual(x, [
       {
-        category: { ref: "Category", rel: "1", refTable: "category" },
-        featureSticker: { ref: "Sticker", refTable: "sticker", rel: "1" }
+        category: { ref: 'Category', rel: '1', refTable: 'category' },
+        featureSticker: { ref: 'Sticker', refTable: 'sticker', rel: '1' }
       },
       {
         recommendedPackages: {
-          ref: "Package",
-          refTable: "package",
-          rel: ">1",
-          ltable: "package_recommended_packages"
+          ref: 'Package',
+          refTable: 'package',
+          rel: '>1',
+          ltable: 'package_recommended_packages'
         }
       }
     ]);
@@ -53,25 +53,25 @@ describe("utils", function() {
   });
   // ====================
   /* TODO Migration tests
-  it("creates internal schema representation", function(d) {
-    console.log("-");
-    const x = mapschema.parse("Package", Models.Package, knex);
-    const x1 = mapschema.parse("Sticker", Models.Sticker, knex);
-    const x2 = mapschema.parse("Category", Models.Category, knex);
-    console.log("parse\n", x);
+  it('creates internal schema representation', function(d) {
+    console.log('-');
+    const x = mapschema.parse('Package', Models.Package, knex);
+    const x1 = mapschema.parse('Sticker', Models.Sticker, knex);
+    const x2 = mapschema.parse('Category', Models.Category, knex);
+    console.log('parse\n', x);
     const y = mapschema.sync(knex, x);
     const y1 = mapschema.sync(knex, x1);
     const y2 = mapschema.sync(knex, x2);
     const yS = y.toString();
-    console.log("sync\n", yS);
+    console.log('sync\n', yS);
     //Promise.all([y1, y2, y], x=> {   
     //});
     y1.then(x => {
-      console.log("1 sync done", JSON.stringify(x));
+      console.log('1 sync done', JSON.stringify(x));
       y2.then(x => {
-        console.log("2 sync done", JSON.stringify(x));
+        console.log('2 sync done', JSON.stringify(x));
         y.then(x => {
-        console.log("0 sync done", JSON.stringify(x));
+        console.log('0 sync done', JSON.stringify(x));
         d();
         });
       });
@@ -80,48 +80,49 @@ describe("utils", function() {
   */
   /*
   // ====================
-  it("create", function(d) {
-    console.log("-");
-    const x = mapschema.parse("Package", Models.Package, knex);
-    //console.log("parse\n", x);
-    const obj = {name: 123, bar:666, "_id": 1};
+  it('create', function(d) {
+    console.log('-');
+    const x = mapschema.parse('Package', Models.Package, knex);
+    //console.log('parse\n', x);
+    const obj = {name: 123, bar:666, '_id': 1};
     const y = mapschema.create(knex, x, obj).toString();
-    console.log("create\n", y);
+    console.log('create\n', y);
     d()
   });*/
 });
 
-describe("Mongoose API", function() {
+describe('Mongoose API', function() {
   const PackageSchema = new Schema(Models.Package);
-  const Package = mp.model("Package", PackageSchema);
+  const Package = mp.model('Package', PackageSchema);
 
   const CategorySchema = new Schema(Models.Category);
-  const Category = mp.model("Category", CategorySchema);
+  const Category = mp.model('Category', CategorySchema);
 
   const StickerSchema = new Schema(Models.Sticker);
-  const Sticker = mp.model("Sticker", StickerSchema);
+  const Sticker = mp.model('Sticker', StickerSchema);
 
-  it("find", function(d) {
+  it('find', function(d) {
     Sticker.find().exec((e, x) => {
-      //console.log("found find", x.length);
+      //console.log('found find', x.length);
       assert(x.length > 5);
       //assert.ok(e);
       d();
     });
   });
 
-  it("find Sorted", function(d) {
-    Sticker.find().sort("label").exec((e, x) => {
+  it('find Sorted', function(d) {
+    Sticker.find().sort('label').exec((e, x) => {
       //console.log('Sorted find', x).length;
+      assert(e===null);
       assert(x.length > 0);
       assert(
         _.reduce(
           x,
           (acc, i) => {
-            assert(i.label > acc);
+            assert(i.label >= acc);
             return i.label;
           },
-          ""
+          ''
         )
       );
       //assert.ok(e);
@@ -130,21 +131,22 @@ describe("Mongoose API", function() {
   });
 
   let createdID = -1;
-  it("create", function(d) {
-    const s = new Sticker({ label: "test123" });
+  it('create', function(d) {
+    const s = new Sticker({ label: 'test123' });
     s.save((e, x) => {
       //console.log('create', x);
       createdID = x;
-      assert(!!x);
       assert(e === null);
+      assert(!!x);
       //assert.ok(e);
       d();
     });
   });
 
-  it("findByID", function(d) {
+  it('findByID', function(d) {
     Sticker.findByID(createdID).exec((e, x) => {
       //console.log('found findByID', x);
+      assert(e===null);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -153,17 +155,19 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("findByID using string id", function(d) {
+  it('findByID using string id', function(d) {
     Sticker.findByID('' + createdID.toString()).exec((e, x) => {
+      assert(e===null);
       assert(x._id === createdID);
       assert(x.label);
       d();
     });
   });
 
-  it("findOne", function(d) {
-    Sticker.findOne({ label: "test123" }).exec((e, x) => {
+  it('findOne', function(d) {
+    Sticker.findOne({ label: 'test123' }).exec((e, x) => {
       //console.log('found findOne', x);
+      assert(e===null);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -172,8 +176,8 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("where clause", function(d) {
-    Sticker.where({ label: "test123" }).findOne().exec((e, x) => {
+  it('where clause', function(d) {
+    Sticker.where({ label: 'test123' }).findOne().exec((e, x) => {
       //console.log('found where.findOne', x);
       assert(x._id === createdID);
       assert(x.created);
@@ -183,11 +187,11 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("delete", function(d) {
+  it('delete', function(d) {
     const s = new Sticker({ _id: createdID });
     s.remove((e, x) => {
-      assert(!!x);
       assert(e === null);
+      assert(!!x);
       assert(x === createdID);
       //assert.ok(e);
       d();
@@ -204,33 +208,32 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("populate many to many", function(d) {
-    Package.findByID(complexPackageID).populate("recommendedPackages").exec((e, x) => {
+  it('populate many to many', function(d) {
+    Package.findByID(complexPackageID).populate('recommendedPackages').exec((e, x) => {
       //console.log('populate find', x.recommendedPackages);
       //console.log('populate find', x.category);
       //console.log(_.keys(x));
-
+      assert(e === null);
       assert(!!x.recommendedPackages.length > 0);
       assert(!!x.recommendedPackages[0].name);
       assert(!!x.recommendedPackages[0]._id);
       //assert(!!x.featureSticker);
-      assert(e === null);
       d();
     });
   });
 
-  it("findByID with one to many #1", function(d) {
-    Package.findByID(complexPackageID).populate("category").exec((e, x) => {
+  it('findByID with one to many #1', function(d) {
+    Package.findByID(complexPackageID).populate('category').exec((e, x) => {
+      assert(e === null);
       assert(!!x.category.title);
       assert(!!x.category._id);
       assert(!!x.category);
-      assert(e === null);
       d();
     });
   });
 
-  it("find all with one to one #2", function(d) {
-    Package.find().populate("category").exec((e, x) => {
+  it('find all with one to one #2', function(d) {
+    Package.find().populate('category').exec((e, x) => {
       const hasCategory = _.filter(x, xx => xx.category && xx.category._id);
       assert(hasCategory.length > 1);
       assert(!!hasCategory[0]._id);
@@ -239,52 +242,73 @@ describe("Mongoose API", function() {
     });
   });
 
-  it("find all with one to one #3", function(d) {
-    Package.find().populate("featureSticker").exec((e, x) => {
+  it('find all with one to one #3', function(d) {
+    Package.find().populate('featureSticker').exec((e, x) => {
+      assert(e === null);
       const hasCategory = _.filter(x, xx => xx.featureSticker);
       assert(hasCategory.length === 0);
-      assert(e === null);
       d();
     });
   });
 
-  it("populate one to many + many to many", function(d) {
+  it('populate one to many + many to many', function(d) {
     Package
       .findByID(complexPackageID)
-      .populate("recommendedPackages")
-      .populate("category")
+      .populate('recommendedPackages')
+      .populate('category')
       .exec((e, x) => {
+        assert(e === null);
         assert(x._id===complexPackageID);
-        assert(!!x.recommendedPackages.length > 0);
+        assert(x.recommendedPackages.length > 0);
         assert(!!x.recommendedPackages[0].name);
         assert(!!x.recommendedPackages[0]._id);
 
         assert(!!x.category.title);
         assert(!!x.category._id);
-        assert(e === null);
         d();
       });
   });
 
-  it("populate using array arg", function(d) {
+  let recommendedPackages = [];
+  it('populate using array arg', function(d) {
     Package
       .findByID(complexPackageID)
-      .populate(["recommendedPackages","category"])
+      .populate(['recommendedPackages','category'])
       .exec((e, x) => {
+        assert(e === null);
         assert(x._id===complexPackageID);
-        assert(!!x.recommendedPackages.length > 0);
+        assert(x.recommendedPackages.length > 0);
         assert(!!x.recommendedPackages[0]._id);
+        // for next test
+        recommendedPackages.push(x.recommendedPackages[0]._id, x.recommendedPackages[1]._id);
 
         assert(!!x.category.title);
-        assert(e === null);
         d();
       });
+  });
+
+  it('create with nested', function(d) {
+    const s = new Package({ name: 'test123', recommendedPackages: recommendedPackages });
+    s.save((e, x) => {
+      assert(e === null, 'error: ' + e);
+      assert(!!s.vobj._id, 'no ID given to saved object');
+      Package.findByID(s.vobj._id)
+        .exec((e, x) => {
+          assert(e === null, 'error:' + e);
+          assert(x.recommendedPackages[0] === recommendedPackages[0]);
+          assert(x.recommendedPackages[1] === recommendedPackages[1]);
+          s.remove((e, x) => {
+            assert(e === null, 'error:' + e);
+            d();
+          });
+        });
+    });
   });
 
   // save associations:
   /*
-  it("create", function(d) {
-    const s = new Sticker({ label: "test123" });
+  it('create', function(d) {
+    const s = new Sticker({ label: 'test123' });
     s.save((e, x) => {
       //console.log('create', x);
       createdID = x;

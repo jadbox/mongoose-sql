@@ -1,4 +1,4 @@
-const _ = require("lodash");
+const _ = require('lodash');
 const Mongoose_Schema = require('mongoose').Schema;
 
 const DEBUG = process.env.DEBUG || 1;

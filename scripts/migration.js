@@ -1,17 +1,17 @@
-const _ = require("lodash");
-const MONGO_CONNECTION = "mongodb://localhost/zps-dev";
+const _ = require('lodash');
+const MONGO_CONNECTION = 'mongodb://localhost/zps-dev';
 
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 //console.log(mongoose.Schema);
-const common = require("../test/common");
+const common = require('../test/common');
 let models = common.getModels();
 
-const mapschema = require("../src/mapschema");
+const mapschema = require('../src/mapschema');
 //const mongoose_sql = require('../src/index');
-const Promise = require("bluebird").Promise;
+const Promise = require('bluebird').Promise;
 
 mongoose.connect(MONGO_CONNECTION);
-mongoose.Promise = require("bluebird");
+mongoose.Promise = require('bluebird');
 //const mongoose_proxy = require('./index');
 function init() {
   /*
@@ -32,33 +32,33 @@ function init() {
   });
 
   /*
-    const packageZ = mapschema.parse("Package", models.Package, knex);
+    const packageZ = mapschema.parse('Package', models.Package, knex);
     packageZ.mongoose = Package;
   */
 
   // must be ordered by dependencies
   const migrationModels = [
-    "Category",
-    "Sticker",
-    "Package",
-    "Cache",
-    "LogLevel",
-    "User",
-    "Post",
-    "Banner"
+    'Category',
+    'Sticker',
+    'Package',
+    'Cache',
+    'LogLevel',
+    'User',
+    'Post',
+    'Banner'
   ]; // order is key
   const migrationTablesSorted = _.map(migrationModels, m => migrationTables[m]);
 
-  console.log("syncing", migrationModels);
+  console.log('syncing', migrationModels);
 
   Promise
     .map(migrationModels, m => mapschema.sync(knex, migrationTables[m]))
     .then(migrate);
 
   function migrate() {
-    console.log("sync completed");
+    console.log('sync completed');
     mapschema.migrateSchemas(knex, mongoose, migrationTablesSorted).then(y => {
-      console.log("completed");
+      console.log('completed');
     });
   }
 }

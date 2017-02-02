@@ -206,15 +206,15 @@ function sync(knex, _schema) {
       });
 
       _.forEach(_schema.joins, (v, k) => {
-        console.log("v.ltable", v.ltable);
+        //console.log("v.ltable", v.ltable);
         r2 = r2.createTableIfNotExists(v.ltable, function(table) {
           //table.increments("_id"); no id needed
           table.integer(_schema.table).unsigned().index();
-          table.foreign(_schema.table).references(_schema.table + '._id');
+          table.foreign(_schema.table).references(_schema.table + '._id').onDelete('CASCADE');
 
           table.integer(k).unsigned();
           // opt: .index()
-          table.foreign(k).references(v.refTable + '._id');
+          table.foreign(k).references(v.refTable + '._id').onDelete('CASCADE');
           table.primary([_schema.table, k]); // forced unique
         });
       });

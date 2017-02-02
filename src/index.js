@@ -1,13 +1,13 @@
-//const mongoose = require("mongoose");
-const Knex = require("knex");
-const core = require("./mapschema");
+//const mongoose = require('mongoose');
+const Knex = require('knex');
+const core = require('./mapschema');
 let knex = null;
 
-const Schema = require("./Schema");
-const Query = require("./Query");
-const { Model, ModelInstance, modelFactory } = require("./Model");
+const Schema = require('./Schema');
+const Query = require('./Query');
+const { Model, ModelInstance, modelFactory } = require('./Model');
 
-const _ = require("lodash");
+const _ = require('lodash');
 
 const e = process.env;
 const DEBUG = process.env.DEBUG || 1;
@@ -47,11 +47,11 @@ function modelNew(name, schema) {
 
 // Sequelize init, returns knex instance
 function connect(params) {
-  if (DEBUG) console.log("sequelize lib init");
+  if (DEBUG) console.log('sequelize lib init');
   if(!knex) {
     knex = Knex(params);
-    if (DEBUG) knex.raw("select 1+1 as result").then(function() {
-      console.log("sql connected");
+    if (DEBUG) knex.raw('select 1+1 as result').then(function() {
+      console.log('sql connected');
     });
   }
 
@@ -62,12 +62,12 @@ function connect(params) {
 
 if (e.PSQL_INIT || true) {
   connect({
-    client: e.DB_CLIENT || "pg",
+    client: e.DB_CLIENT || 'pg',
     connection: {
-      host: e.DB_HOST || "127.0.0.1",
-      user: e.DB_USER || "jonathan.dunlap",
-      password: e.DB_PASSWORD || "",
-      database: e.DB_DATABASE || "test"
+      host: e.DB_HOST || '127.0.0.1',
+      user: e.DB_USER || 'jonathan.dunlap',
+      password: e.DB_PASSWORD || '',
+      database: e.DB_DATABASE || 'test'
     }
   });
 }
