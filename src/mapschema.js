@@ -1,6 +1,6 @@
-const _ = require("lodash");
-const schema = require("./Schema");
-const Promise = require("bluebird").Promise;
+const _ = require('lodash');
+const schema = require('./Schema');
+const Promise = require('bluebird').Promise;
 
 module.exports = {
   getRelations,
@@ -12,27 +12,27 @@ module.exports = {
   migrateSchemas
 };
 
-const TYPE_JSONB = "jsonb";
+const TYPE_JSONB = 'jsonb';
 const typeMap = {
-  [String]: "string",
-  [Number]: "float",
-  id: "integer",
-  [Date]: "date",
-  [Boolean]: "boolean",
+  [String]: 'string',
+  [Number]: 'float',
+  id: 'integer',
+  [Date]: 'date',
+  [Boolean]: 'boolean',
   // untyped array
   [Array]: TYPE_JSONB,
   // untyped object
   [Object]: TYPE_JSONB
 };
 
-const ONE = "1", MANY = ">1";
+const ONE = '1', MANY = '>1';
 
 const ARRAY_OBJ_TYPE = typeMap[Object];
 const isArrayType = x => Array.isArray(x) && x.length !== 0;
 
 // Builds the name of the join table
 function joinTableName(sourceTableName, fieldName) {
-  return _.snakeCase(tableName(sourceTableName) + " " + fieldName);
+  return _.snakeCase(tableName(sourceTableName) + ' ' + fieldName);
 }
 
 // Mongoose Model name to SQL table name
@@ -71,7 +71,7 @@ function getRelations(name, params) {
 // Makes a clean internal representation to consume
 function parse(name, params, knex) {
   // check if knex ref is provided, otherwise no-op
-  const knexNow = knex ? knex.fn.now.bind(knex.fn) : x => "";
+  const knexNow = knex ? knex.fn.now.bind(knex.fn) : x => '';
 
   // Translate mongoose field types to sql
   const vTypes = _(params)
@@ -88,7 +88,7 @@ function parse(name, params, knex) {
   // PATCH: Convert fields that manually link fieds to Integer instead of FLOAT. Ex: Package.cptPackageId
   const isIntProp = k => {
     if (!k) throw new Error("invalid key");
-    return k.indexOf("Id") > 2 || k.indexOf("priority") !== -1;
+    return k.indexOf('Id') > 2 || k.indexOf('priority') !== -1;
   };
   _(vTypes)
     .pickBy((v, k) => v.type === typeMap[Number] && isIntProp(k))
@@ -153,13 +153,13 @@ function parse(name, params, knex) {
   // Don't use SQL snakecase in order to preserve field names used by client
   //v.props = _(v.props).toPairs().map( ([x, y])=>[_.snakeCase(x),y]).fromPairs().value();
   v.fields = _.keys(v.props);
-  v.fields.push("_id");
+  v.fields.push('_id');
 
   v.refs = _.concat(..._.map(refs, _.keys));
   v.joins = refs[1];
   v.table = tableName(name);
   v.name = name;
-  v.idField = v.table + "._id";
+  v.idField = v.table + '._id';
   return v;
 }
 
@@ -171,32 +171,32 @@ function sync(knex, _schema) {
         if(exists) return null;
 
         let r2 = knex.schema.createTableIfNotExists(_schema.table, function(table) {
-        table.string("__id");
+        table.string('__id');
         // old ID
-        table.increments("_id");
+        table.increments('_id');
         _.forEach(_schema.props, (v, k) => {
           //console.log('-', k);
           let z;
-          if (v.type === "string")
+          if (v.type === 'string')
             z = table.text(k);
-          else if (v.type === "boolean")
+          else if (v.type === 'boolean')
             z = table.boolean(k);
-          else if (v.type === "float")
+          else if (v.type === 'float')
             z = table.float(k);
-          else if (v.type === "integer")
+          else if (v.type === 'integer')
             z = table.integer(k);
-          else if (v.type === "date") {
+          else if (v.type === 'date') {
             z = table.timestamp(k).defaultTo(knex.fn.now());
-          } else if (v.type === "jsonb")
+          } else if (v.type === 'jsonb')
             z = table.jsonb(k);
-          else if (v.type === "id")
+          else if (v.type === 'id')
             z = table.integer(k).unsigned();
           else if (v.ref) {
             z = table.integer(k).unsigned();
-            table.foreign(k).references(v.refTable + "._id");
+            table.foreign(k).references(v.refTable + '._id');
           }
           if (!z) {
-            console.warn(_schema.table + ": lacks type for prop " + v.type);
+            console.warn(_schema.table + ': lacks type for prop ' + v.type);
             return;
           }
 
@@ -210,11 +210,11 @@ function sync(knex, _schema) {
         r2 = r2.createTableIfNotExists(v.ltable, function(table) {
           //table.increments("_id"); no id needed
           table.integer(_schema.table).unsigned().index();
-          table.foreign(_schema.table).references(_schema.table + "._id");
+          table.foreign(_schema.table).references(_schema.table + '._id');
 
           table.integer(k).unsigned();
           // opt: .index()
-          table.foreign(k).references(v.refTable + "._id");
+          table.foreign(k).references(v.refTable + '._id');
           table.primary([_schema.table, k]); // forced unique
         });
       });
@@ -234,7 +234,7 @@ function find(knex, _schema) {
     q = q.leftOuterJoin(
       v.ltable,
       _schema.idField,
-      v.ltable + "." + _schema.table
+      v.ltable + '.' + _schema.table
     );
   });
 
@@ -244,7 +244,7 @@ function find(knex, _schema) {
 // find with all populate by ID
 function findByID(knex, _schema, id) {
   const q = find(knex, _schema);
-  return q.where("_id", id);
+  return q.where('_id', id);
 }
 
 // Create an entry with associations
@@ -260,7 +260,7 @@ function create(knex, _schema, obj) {
 
   //console.log(_schema.table + " saving ");
   // + JSON.stringify(jsonbFixed));
-  let query = knex(_schema.table).insert(jsonbFixed).returning("_id");
+  let query = knex(_schema.table).insert(jsonbFixed).returning('_id');
 
   // associations
   _(obj)
