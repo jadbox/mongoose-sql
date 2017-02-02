@@ -128,11 +128,6 @@ function parse(name, params, knex) {
     .mapValues(x => ({ type: ARRAY_OBJ_TYPE }))
     .value();
 
-    if(name==='Package') {
-      console.log('vATypes', vATypes);
-      throw new Error('--')
-    }
-
   // Defaults on array types
   const vADefaults = _(params)
     .pickBy(isArrayType)
