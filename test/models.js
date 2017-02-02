@@ -60,7 +60,7 @@ function init(Schema) { //Schema
       type: String
     },
 
-    insightsDeckFileName: { // TODO NEW PROP
+    insightsDeckFileName: { // TODO NEW PROP //pkgStatsVisibility?
       type: String // ?
     },
     oneSheetFileName: {
@@ -243,7 +243,7 @@ function init(Schema) { //Schema
     }
   };
 
-  const Cache = new Schema({
+  const Cache = {
     url: {
       type: String
     },
@@ -254,7 +254,7 @@ function init(Schema) { //Schema
       type: Date,
       expires: 2628000
     }
-  });
+  };
 
 
   const LogLevel = {

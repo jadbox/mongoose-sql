@@ -261,7 +261,21 @@ describe("Mongoose API", function() {
 
         assert(!!x.category.title);
         assert(!!x.category._id);
-        assert(!!x.category);
+        assert(e === null);
+        d();
+      });
+  });
+
+  it("populate using array arg", function(d) {
+    Package
+      .findByID(complexPackageID)
+      .populate(["recommendedPackages","category"])
+      .exec((e, x) => {
+        assert(x._id===complexPackageID);
+        assert(!!x.recommendedPackages.length > 0);
+        assert(!!x.recommendedPackages[0]._id);
+
+        assert(!!x.category.title);
         assert(e === null);
         d();
       });

@@ -43,8 +43,9 @@ module.exports = class Query {
     // TODO: secondary select
   }
   populate(model1, model2) {
-    // TODO: POPULATE
-    if (model1) this.populateFields.push(model1);
+    if(Array.isArray(model1)) this.populateFields.push(...model1);
+    else this.populateFields.push(model1);
+
     if (model2) this.populateFields.push(model2);
     return this;
   }

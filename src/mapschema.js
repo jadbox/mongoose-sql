@@ -72,10 +72,17 @@ function getRelations(name, params) {
 function parse(name, params, knex) {
   // check if knex ref is provided, otherwise no-op
   const knexNow = knex ? knex.fn.now.bind(knex.fn) : x => "";
+
   // Translate mongoose field types to sql
   const vTypes = _(params)
     .pickBy(x => x.type && !x.ref)
     .mapValues((x, field) => ({ type: typeMap[x.type] }))
+    .value();
+
+  // Nested value objects
+  const vTypesObj = _(params)
+    .pickBy(x => !x.type && !x.ref && !x.length && _.keys(x).length > 0)
+    .mapValues((x, field) => ({ type: typeMap[Object] }))
     .value();
 
   // PATCH: Convert fields that manually link fieds to Integer instead of FLOAT. Ex: Package.cptPackageId
@@ -133,6 +140,7 @@ function parse(name, params, knex) {
 
   v.props = _.merge(
     vTypes,
+    vTypesObj,
     vATypes,
     vDefaults,
     vADefaults,
@@ -420,10 +428,18 @@ function migrateSchemas(knex, mongoose, schemas) {
   });
 }
 
+// TODO cleanup: move to migration
 function migrateSchema(knex, mongoose, Base) {
   console.log("migrating", Base.table);
   return new Promise(function(resolve, reject) {
     Base.mongoose.find().exec((e, x) => {
+      /*if(Base.table.indexOf('ackage') > -1) {
+        console.log('catching Package');
+        _(x).filter(y=>y.pkgStatsVisibility)
+          .map(y=>console.log(y)).value();
+        return;
+      }*/
+
       if (x.length === undefined) throw new Error("no length");
       migrateTable(knex, Base, x).then(x1 => {
         if(!x) x = [];
