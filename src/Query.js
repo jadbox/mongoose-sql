@@ -3,15 +3,15 @@ const DEBUG = process.env.DEBUG || 1;
 
 // many to many
 function makeAgg(knex, k, field) {
-  return knex.raw("json_agg(x" + k + ') AS "' + field + '"');
+  return knex.raw('json_agg(x' + k + ') AS "' + field + '"');
 }
 function makeAggId(knex, k, field) {
-  return knex.raw("json_agg(x" + k + '._id) AS "' + field + '"');
+  return knex.raw('json_agg(x' + k + '._id) AS "' + field + '"');
 }
 
 // one to many
 function makeRow(knex, k, field) {
-  return knex.raw("row_to_json(x" + k + ') AS "' + field + '"');
+  return knex.raw('row_to_json(x' + k + ') AS "' + field + '"');
 }
 
 // Chain operations on find() and findjustOne
@@ -24,7 +24,6 @@ module.exports = class Query {
     this.populateFields = [];
     this.ops = [];
     this.justOne = justOne;
-
     //this.joinsTableIDs = _.cloneDeep(this.schema.joins);
   }
   findOne(params) {
@@ -43,13 +42,13 @@ module.exports = class Query {
     return this;
   }
   select(field) {
-    if(field.charAt(0) === '-') console.log('TODO select by', field);
+    if (field.charAt(0) === '-') console.log('TODO select by', field);
     else throw new Error('additional select field', field);
     return this;
     // TODO: secondary select
   }
   populate(model1, model2) {
-    if(Array.isArray(model1)) this.populateFields.push(...model1);
+    if (Array.isArray(model1)) this.populateFields.push(...model1);
     else this.populateFields.push(model1);
 
     if (model2) this.populateFields.push(model2);
@@ -58,30 +57,32 @@ module.exports = class Query {
   exec(cb) {
     // if (DEBUG) console.log('exec', this.method);
     const _schema = this.schema;
-    if(!_schema) throw new Error('missing schema state');
+    if (!_schema) throw new Error('missing schema state');
 
     const many = makeAgg.bind(null, this.knex);
     const manyID = makeAggId.bind(null, this.knex);
     const one = makeRow.bind(null, this.knex);
 
     // aggregate fields with any needed join table columns
-    const extra = [_schema.table + '.*', ..._(this.schema.refs).map((
-        f, K
-      ) => {
-        const fullJoin = _.includes(this.populateFields, f);
-        if (_schema.joins[f]) {
-          if(fullJoin) return many(K, f);
-          else return manyID(K, f);
-        }
-       if (fullJoin && _schema.props[f]) return one(K, f);
-       return null;
-      /* Validate invalid populate fields
+    const extra = [
+      _schema.table + '.*',
+      ..._(this.schema.refs)
+        .map((f, K) => {
+          const fullJoin = _.includes(this.populateFields, f);
+          if (_schema.joins[f]) {
+            if (fullJoin) return many(K, f);
+            else return manyID(K, f);
+          }
+          if (fullJoin && _schema.props[f]) return one(K, f);
+          return null;
+          /* Validate invalid populate fields
         else if(!_schema.joins[f] && _schema.props[f]) {
           console.log( f);
           throw new Error('unlisted field ' + f);
         }*/
-      }).filter(null) 
-      ];
+        })
+        .filter(null)
+    ];
 
     // Select fields
     let q = this.knex.select(...extra).from(_schema.table);
@@ -129,7 +130,8 @@ module.exports = class Query {
 
     if (this.populateFields.length)
       q = q.groupBy(_schema.table + '._id', ...extraOrders);
-    else q = q.groupBy(_schema.table + '._id');
+    else
+      q = q.groupBy(_schema.table + '._id');
 
     // extract single element
     if (this.justOne) q = q.then(x => x.length > 0 ? x[0] : null);
