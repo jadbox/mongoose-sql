@@ -1,5 +1,5 @@
 const assert = require('chai').assert;
-const Promise = require('bluebird');
+//const Promise = require('q');
 
 const mp = require('../src/index.js');
 const Schema = mp.Schema;

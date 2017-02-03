@@ -8,10 +8,10 @@ let models = common.getModels();
 
 const mapschema = require('../src/mapschema');
 //const mongoose_sql = require('../src/index');
-const Promise = require('bluebird').Promise;
+const Promise = require('q').Promise;
 
 mongoose.connect(MONGO_CONNECTION);
-mongoose.Promise = require('bluebird');
+mongoose.Promise = require('q');
 //const mongoose_proxy = require('./index');
 function init() {
   /*

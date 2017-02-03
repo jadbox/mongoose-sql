@@ -23,12 +23,12 @@
     "url": "git://github.com/jadbox/mongoose-sql"
   },
   "dependencies": {
-    "bluebird": "^3.4.7",
     "chai": "^3.5.0",
     "knex": "^0.12.6",
     "lodash": "^4.17.4",
     "mocha": "^3.2.0",
-    "mongoose": "^4.7.8"
+    "mongoose": "^4.7.8",
+    "q": "^1.4.1"
   },
   "devDependencies": {
     "mocha": "^3.2.0",

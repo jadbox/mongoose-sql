@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const schema = require('./Schema');
-const Promise = require('bluebird').Promise;
+const Promise = require('q').Promise;
 
 module.exports = {
   getRelations,
@@ -209,8 +209,7 @@ function sync(knex, _schema) {
       r2 = r2.createTableIfNotExists(v.ltable, function(table) {
         //table.increments("_id"); no id needed
         table.integer(_schema.table).unsigned().index();
-        table
-          .foreign(_schema.table)
+        table.foreign(_schema.table)
           .references(_schema.table + '._id')
           .onDelete('CASCADE');
 

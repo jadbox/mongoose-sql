@@ -1,7 +1,7 @@
 // Simple mongoose test
 // TODO: refactor to unit test
 const assert = require('chai').assert;
-const Promise = require('bluebird');
+const Promise = require('q');
 const _ = require('lodash');
 
 const mp = require('../src/index.js');

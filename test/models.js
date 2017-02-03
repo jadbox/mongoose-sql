@@ -200,7 +200,7 @@ function init(Schema) { //Schema
   }
 
   const Category = {
-    priority: { // ===== NEW PROP
+    priority: {
       type: Number
     },
     created: {
@@ -217,10 +217,7 @@ function init(Schema) { //Schema
     description: {
       type: String,
       default: '',
-      trim: true,
-      priority: {
-        type: Number
-      }
+      trim: true
     },
     posh: {
       type: Boolean,
