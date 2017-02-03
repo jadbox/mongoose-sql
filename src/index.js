@@ -22,6 +22,14 @@ const models = {};
 class Connection {
   constructor(knex) {
     this.knex = knex;
+    this.collections = {
+      'caches': { 
+        drop: (x,cb) => {
+          console.log('caches STUB ' + x);
+          if(cb) cb();
+        }
+      }
+    };
   }
   on(name, fn) {
     //name == connected
