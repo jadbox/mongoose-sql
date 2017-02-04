@@ -138,7 +138,10 @@ module.exports = class Query {
 
     //console.log( q.toSQL() );
 
-    return q.then(x => cb(null, x));
+    return q.then(x => {
+      if(cb) cb(null, x);
+      return x;
+    });
     //this.model[this.method](this.params).then(x => cb(null, x)).catch(cb);
   }
 };

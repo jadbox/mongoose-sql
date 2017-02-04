@@ -110,6 +110,42 @@ describe('Mongoose API', function() {
     });
   });
 
+  it('find using promise', function(d) {
+    Promise.when(Sticker.find().exec(), x => {
+      //console.log('found find', x.length);
+      assert(x.length > 5);
+      Sticker.find().exec().then(x => {
+        assert(x.length > 5);
+        d();
+      });
+    });
+  });
+
+  it('find using promise.all', function(d) {
+    Promise.all([
+        Sticker.find().exec(), Sticker.find().exec()
+      ])
+      .then(x => {
+        //console.log('found find', x.length);
+        assert(x[0].length > 5);
+        assert(x[1].length > 5);
+        d();
+    }).catch(e=> { throw new Error(e); });
+  });
+
+  it('find using promise.all.when', function(d) {
+    Promise.all([
+        Promise.when(Sticker.find().exec()),
+        Promise.when(Sticker.find().exec())
+      ])
+      .then(x => {
+        //console.log('found find', x.length);
+        assert(x[0].length > 5);
+        assert(x[1].length > 5);
+        d();
+    }).catch(e=> { throw new Error(e); });
+  });
+
   it('find Sorted', function(d) {
     Sticker.find().sort('label').exec((e, x) => {
       //console.log('Sorted find', x).length;
