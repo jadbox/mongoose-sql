@@ -139,7 +139,6 @@ describe('Mongoose API', function() {
         Promise.when(Sticker.find().exec())
       ])
       .then(x => {
-        //console.log('found find', x.length);
         assert(x[0].length > 5);
         assert(x[1].length > 5);
         d();
@@ -149,7 +148,7 @@ describe('Mongoose API', function() {
   it('find Sorted', function(d) {
     Sticker.find().sort('label').exec((e, x) => {
       //console.log('Sorted find', x).length;
-      assert(e===null);
+      assert(e===null, 'error: ' + e);
       assert(x.length > 0);
       assert(
         _.reduce(
@@ -172,17 +171,15 @@ describe('Mongoose API', function() {
     s.save((e, x) => {
       //console.log('create', x);
       createdID = x;
-      assert(e === null);
+      assert(e===null, 'error: ' + e);
       assert(!!x);
-      //assert.ok(e);
       d();
     });
   });
 
   it('findByID', function(d) {
     Sticker.findByID(createdID).exec((e, x) => {
-      //console.log('found findByID', x);
-      assert(e===null);
+      assert(e===null, 'error: ' + e);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -193,7 +190,7 @@ describe('Mongoose API', function() {
 
   it('findByID using string id', function(d) {
     Sticker.findByID('' + createdID.toString()).exec((e, x) => {
-      assert(e===null);
+      assert(e===null, 'error: ' + e);
       assert(x._id === createdID);
       assert(x.label);
       d();
@@ -203,7 +200,7 @@ describe('Mongoose API', function() {
   it('findOne', function(d) {
     Sticker.findOne({ label: 'test123' }).exec((e, x) => {
       //console.log('found findOne', x);
-      assert(e===null);
+      assert(e===null, 'error: ' + e);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -223,6 +220,18 @@ describe('Mongoose API', function() {
     });
   });
 
+  it('where.findOne promise.all', function(d) {
+    Promise.all([ 
+        Sticker.where({ label: 'test123' }).findOne().exec()
+    ]).then( ([x]) => {
+      assert(x._id === createdID);
+      assert(x.created);
+      assert(x.label);
+      //assert.ok(e);
+      d();
+    });
+  });
+
   it('delete', function(d) {
     const s = new Sticker({ _id: createdID });
     s.remove((e, x) => {
@@ -233,6 +242,11 @@ describe('Mongoose API', function() {
       d();
     });
   });
+
+  after(function() {
+    const s = new Sticker({ _id: createdID });
+    s.remove((e, x) => {});
+  })
 
   let complexPackageID; // used for later tests on associations
   it('get id of a complex package', function(d) {

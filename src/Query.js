@@ -14,6 +14,7 @@ function makeRow(knex, k, field) {
   return knex.raw('row_to_json(x' + k + ') AS "' + field + '"');
 }
 
+var i = 0;
 // Chain operations on find() and findjustOne
 module.exports = class Query {
   constructor(model, params, justOne, _knex) {
@@ -24,10 +25,14 @@ module.exports = class Query {
     this.populateFields = [];
     this.ops = [];
     this.justOne = justOne;
+    this._i = ++i;
     //this.joinsTableIDs = _.cloneDeep(this.schema.joins);
   }
   findOne(params) {
-    if (params && this.params) this.params = _.merge(this.params, params);
+    if (!isNaN(parseFloat(this.params))) this.params = params;
+    else if (params && this.params) 
+      this.params = _.merge(this.params, params);
+      
     this.justOne = true;
     return this;
   }
@@ -91,9 +96,12 @@ module.exports = class Query {
     _.forEach(this.ops, op => q = op(q));
 
     // Where clauses
-    if (this.params && _.isObject(this.params)) {
+    if (_.isObject(this.params)) {
+      // Fixes where fields that are ambiguous to the table
+      this.params = _.mapKeys(this.params, 
+        (v,k) => this.schema.table + '.' + k);
       q = q.where(this.params);
-    } else if (this.params && !isNaN(parseFloat(this.params)))
+    } else if (!isNaN(parseFloat(this.params)))
       q = q.where(this.schema.table + '._id', parseFloat(this.params));
 
     // == Nested many-many group
@@ -103,13 +111,14 @@ module.exports = class Query {
       //if(!prop) throw new Error('field not found '+f);
 
       const key = 'x' + K;
-      q = q
-        .leftOuterJoin(
+      q = q.leftOuterJoin(
           prop.ltable + ' AS L',
           _schema.table + '._id',
           'L.' + _schema.table
         )
-        .leftOuterJoin(prop.refTable + ' AS ' + key, 'L.' + f, key + '._id');
+        .leftOuterJoin(
+          prop.refTable + ' AS ' + key, 
+          'L.' + f, key + '._id');
     });
 
     // == Nested one-many group
@@ -133,15 +142,15 @@ module.exports = class Query {
     else
       q = q.groupBy(_schema.table + '._id');
 
-    // extract single element
-    if (this.justOne) q = q.then(x => x.length > 0 ? x[0] : null);
-
-    //console.log( q.toSQL() );
-
+    //console.log( this._i, q.toString() );
     return q.then(x => {
-      if(cb) cb(null, x);
-      return x;
+        //console.log(this._i, 'returned')
+        // extract single element
+        if (this.justOne) x = x.length > 0 ? x[0] : null;
+
+        //console.log('returned', i);
+        if(cb) cb(null, x);
+        return x;
     });
-    //this.model[this.method](this.params).then(x => cb(null, x)).catch(cb);
   }
 };
