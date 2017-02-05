@@ -165,6 +165,26 @@ describe('Mongoose API', function() {
     });
   });
 
+  it('find reverse Sorted', function(d) {
+    Sticker.find().sort('-label').exec((e, x) => {
+      //console.log('Sorted find', x).length;
+      assert(e===null, 'error: ' + e);
+      assert(x.length > 0);
+      assert(
+        _.reduce(
+          x,
+          (acc, i) => {
+            assert(i.label <= acc);
+            return i.label;
+          },
+          'zzzz'
+        )
+      );
+      //assert.ok(e);
+      d();
+    });
+  });
+
   let createdID = -1;
   it('create', function(d) {
     const s = new Sticker({ label: 'test123' });

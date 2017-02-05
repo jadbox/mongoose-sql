@@ -43,7 +43,13 @@ module.exports = class Query {
   }
   sort(field) {
     // TODO: POPULATE
-    this.ops.push(q => q.orderBy(this.schema.table + '.' + field)); //'desc'
+    if(field.charAt(0) !== '-') 
+      this.ops.push(q => q.orderBy(this.schema.table + '.' + field)); //'desc'
+    else {
+      field = field.substring(1);
+      this.ops.push(q => 
+        q.orderBy(this.schema.table + '.' + field, 'desc'));
+    }
     return this;
   }
   select(field) {
