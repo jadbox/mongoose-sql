@@ -93,7 +93,8 @@ function modelFactory(name, schema) {
   };
 
   // copy static methods over
-  const fields = ['find', 'findByID', 'loaded', 'setKnex', 'findOne', 'where'];
+  const fields = ['find', 'findByID', 'findById', 
+      'loaded', 'setKnex', 'findOne', 'where'];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
   modelType.schema = model.schema;
@@ -123,6 +124,9 @@ class Model {
   }
   findByID(id) {
     return this.findOne(id);
+  }
+  findById(id) { // alias
+    return this.findByID(id);
   }
   findOne(params) {
     return new Query(this, params, true, this.knex);

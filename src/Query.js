@@ -36,6 +36,12 @@ module.exports = class Query {
     this.justOne = true;
     return this;
   }
+  findByID(params) {
+    return this.findOne(params)
+  }
+  findById(params) {
+    return this.findByID(params)
+  }
   find(params) {
     findOne(params);
     this.justOne = false;
