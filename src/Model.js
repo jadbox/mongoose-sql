@@ -4,6 +4,8 @@ const Query = require('./Query');
 const core = require('./mapschema');
 const Promise = require('q').Promise;
 
+const TYPE_JSONB = 'jsonb';
+
 // Knex db context
 let knex = null;
 function init(_knex) {
@@ -20,6 +22,12 @@ class ModelInstance {
     //console.log('this.Schema', this.Schema)
     if (!this.Schema.table) throw new Error('invalid table');
     //this.sqlz = model.create(vbo);
+  }
+  toJSON() {
+    return JSON.stringify(this.vobj);
+  }
+  toString() {
+    return toJSON();
   }
   delete(cb) {
     return remove(cb);
@@ -41,17 +49,21 @@ class ModelInstance {
 
   // Todo upsert
   save(cb) {
-    const vobj = this.vobj;
-    if (!vobj) throw new Error('empty object to save');
-    const removedJoins = _(vobj).pickBy( (v,k) => !this.Schema.joins[k] ).value(); // remove joins
+    const s = this.Schema;
+    let vobj = this.vobj;
+    vobj = removeInvalidFields(s, vobj);
+    vobj = correctJsonFields(s, vobj);
     
-    return upsertItem(this.knex, this.Schema.table, '_id', removedJoins) 
+    if (!vobj) throw new Error('empty object to save');
+    const removedJoins = _(vobj).pickBy( (v,k) => !s.joins[k] ).value(); // remove joins
+    
+    return upsertItem(this.knex, s.table, removedJoins) 
       //this.knex //this.model.save(this.vobj)
       //.insert(removedJoins)
       //.into(this.Schema.table)
       //.returning('_id')
-      .then( ids => vobj._id = ids[0] ) // save model's id
-      .then( id => this._saveAssociations(id).then(()=>id) )
+      .then( ids => this.vobj._id = ids[0] ) // save model's id
+      .then( id => this._saveAssociations(id, vobj).then(()=>id) )
       .then(id => {
         if(cb) cb(null, id);
         return id;
@@ -59,17 +71,17 @@ class ModelInstance {
       .catch(cb);
   }
 
-  _saveAssociations(id) {
-    let q = Promise.resolve(id);
+  _saveAssociations(id, vobj) {
     const s = this.Schema;
+    let q = Promise.resolve(id);
     // for each join field
     _.forEach(s.joins, (j,key) => {
-      if(!this.vobj[key]) {
+      if(!vobj[key]) {
         console.log('no relationship elements to save');
         return;
       }
       //console.log('joining', key);
-      const batch = _.map(this.vobj[key], val =>
+      const batch = _.map(vobj[key], val =>
         ({ [key]: val, [s.table]: id })
       );
       // Insert all many related elements to field at once
@@ -160,7 +172,20 @@ module.exports = { Model, ModelInstance, modelFactory };
  * @param {Object} itemData - a hash of properties to be inserted/updated into the row
  * @returns {Promise} - A Promise which resolves to the inserted/updated row
  */
-function _upsertItem(knex, tableName, conflictTarget, itemData) {
+function _upsertItem(knex, tableName, itemData) {
+  const insert = knex(tableName).insert(itemData).toString();
+  const itemDataWithoutId = _.omit(itemData, '_id');
+  const update = knex(tableName).update(itemDataWithoutId).returning(tableName+'._id');
+  const updateFix = update.toString().replace(/^update ([`"])[^\1]+\1 set/i, '');
+
+  //let query = `${insert} ON DUPLICATE KEY UPDATE ${updateFix}`;
+  let query = `${insert} ON CONFLICT (_id) DO UPDATE SET ${updateFix}`;
+  // console.log('+', tableName, query);
+  return knex.raw(query).then(x => {
+    // console.log('--', x.rows[0]._id)
+    return [ x.rows[0]._id ];
+  })
+  /*
    let exclusions = _.keys(itemData)
        .filter(c => c !== conflictTarget)
        .map(c => knex.raw('?? = EXCLUDED.??', [c, c]).toString())
@@ -176,11 +201,51 @@ function _upsertItem(knex, tableName, conflictTarget, itemData) {
          //console.log( 'result', result.rows, result.rows[0]._id );
          return [ result.rows[0]._id ];
        });
+       */
  }
 
- function upsertItem(knex, tableName, conflictTarget, itemData) {
+function insertItem(knex, tableName, itemData) {
+      const q = knex //this.model.save(this.vobj)
+        .insert(itemData)
+        .into(tableName)
+        .returning('_id');
+        
+      //console.log('q', q.toString());
+      return q; //.then(x => {console.log(x); return x; });
+}
+
+ function upsertItem(knex, tableName, itemData) {
   if( Array.isArray(itemData) ) {
-    return Promise.map(itemData, i => _upsertItem(knex, tableName, conflictTarget, i));
+    return Promise.map(itemData, i => {
+      if(itemData._id) return _upsertItem(knex, tableName, i);
+      else return insertItem(knex, tableName, i);
+    });
   }
-  else return _upsertItem(knex, tableName, conflictTarget, itemData);
+  else {
+    if(itemData._id) return _upsertItem(knex, tableName, itemData);
+    else return insertItem(knex, tableName, itemData);
+  }
  }
+
+ // stringify jsonb fields
+function correctJsonFields(_schema, obj) {
+  const r = _(obj)
+    .pickBy((v, k) => !_schema.joins[k] && (_.isObject(v) || _.isArray(v)))
+    //.pickBy((v, k) => _schema.props[k] && _schema.props[k].type === TYPE_JSONB)
+    .mapValues(JSON.stringify)
+    .value();
+
+  // console.log("******corrected********", r);
+  return _.merge(obj, r); //l->r
+}
+
+function removeInvalidFields(_schema, obj) {
+  const r = _(obj)
+    .pickBy((v, k) => k !== '_id' && !_schema.props[k] && !_schema.joins[k])
+    .keys()
+    .value();
+
+  // console.log("******removed********", r);
+  return _.omit(obj, ...r); //l->r
+}
+

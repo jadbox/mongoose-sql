@@ -187,7 +187,7 @@ describe('Mongoose API', function() {
 
   let createdID = -1;
   it('create', function(d) {
-    const s = new Sticker({ label: 'test123' });
+    const s = new Sticker({ label: 'test123', notValid:'ignore' });
     s.save((e, x) => {
       //console.log('created _id', x);
       createdID = x;
@@ -349,14 +349,14 @@ describe('Mongoose API', function() {
       .populate('recommendedPackages')
       .populate('category')
       .exec((e, x) => {
-        assert(e === null);
-        assert(x._id===complexPackageID);
+        assert.isNull(e, 'error: ' + e);
+        assert.equal(x._id, complexPackageID);
         assert(x.recommendedPackages.length > 0);
-        assert(!!x.recommendedPackages[0].name);
-        assert(!!x.recommendedPackages[0]._id);
+        assert.isNotNull(x.recommendedPackages[0].name);
+        assert.isNotNull(x.recommendedPackages[0]._id);
 
-        assert(!!x.category.title);
-        assert(!!x.category._id);
+        assert.isNotNull(x.category.title);
+        assert.isNotNull(x.category._id);
         d();
       });
   });
@@ -367,10 +367,10 @@ describe('Mongoose API', function() {
       .findByID(complexPackageID)
       .populate(['recommendedPackages','category'])
       .exec((e, x) => {
-        assert(e === null);
-        assert(x._id===complexPackageID);
+        assert.isNull(e, 'error: ' + e);
+        assert.equal(x._id, complexPackageID);
         assert(x.recommendedPackages.length > 0);
-        assert(!!x.recommendedPackages[0]._id);
+        assert.isNotNull(x.recommendedPackages[0]._id);
         // for next test
         recommendedPackages.push(x.recommendedPackages[0]._id, x.recommendedPackages[1]._id);
 
@@ -381,14 +381,16 @@ describe('Mongoose API', function() {
 
   it('create with nested', function(d) {
     const s = new Package({ name: 'test123', recommendedPackages: recommendedPackages });
-    s.save((e, x) => {
-      assert(e === null, 'error: ' + e);
+    s.save((e, id) => {
+      assert.isNull(e, 'error: ' + e);
       assert(!!s.vobj._id, 'no ID given to saved object');
+      assert.equal(id, s.vobj._id, `saved id ${id} not matches model: ${s.vobj._id}`);
       Package.findByID(s.vobj._id)
         .exec((e, x) => {
-          assert(e === null, 'error:' + e);
-          assert(x.recommendedPackages[0] === recommendedPackages[0]);
-          assert(x.recommendedPackages[1] === recommendedPackages[1]);
+          assert.isNull(e, 'error: ' + e);
+          assert.equal(x.name, 'test123', 'label does not match test123: ' + x.name);
+          assert.equal(x.recommendedPackages[0], recommendedPackages[0], x.recommendedPackages + '-' + recommendedPackages);
+          assert.equal(x.recommendedPackages[1], recommendedPackages[1], x.recommendedPackages + '-' + recommendedPackages);
           s.remove(() => {
             //assert(e === null, 'error:' + e);
             d();
