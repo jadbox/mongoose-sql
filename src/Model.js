@@ -2,6 +2,7 @@ const _ = require('lodash');
 const DEBUG = process.env.DEBUG || 1;
 const Query = require('./Query');
 const core = require('./mapschema');
+const Promise = require('q').Promise;
 
 // Knex db context
 let knex = null;
@@ -38,14 +39,17 @@ class ModelInstance {
       .catch(cb);
   }
 
+  // Todo upsert
   save(cb) {
     const vobj = this.vobj;
     if (!vobj) throw new Error('empty object to save');
     const removedJoins = _(vobj).pickBy( (v,k) => !this.Schema.joins[k] ).value(); // remove joins
-    return this.knex //this.model.save(this.vobj)
-      .insert(removedJoins)
-      .into(this.Schema.table)
-      .returning('_id')
+    
+    return upsertItem(this.knex, this.Schema.table, '_id', removedJoins) 
+      //this.knex //this.model.save(this.vobj)
+      //.insert(removedJoins)
+      //.into(this.Schema.table)
+      //.returning('_id')
       .then( ids => vobj._id = ids[0] ) // save model's id
       .then( id => this._saveAssociations(id).then(()=>id) )
       .then(id => {
@@ -94,7 +98,7 @@ function modelFactory(name, schema) {
 
   // copy static methods over
   const fields = ['find', 'findByID', 'findById', 
-      'loaded', 'setKnex', 'findOne', 'where'];
+      'setKnex', 'findOne', 'where'];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
   modelType.schema = model.schema;
@@ -113,9 +117,6 @@ class Model {
     const m = new ModelInstance(this._schema, vobj);
     return m.setKnex(this.knex);
   }
-  loaded() {
-    return !!this.sqlm;
-  }
   where(params) {
     return this.find(params);
   }
@@ -132,14 +133,13 @@ class Model {
     return new Query(this, params, true, this.knex);
   }
   remove(vobj, cb) {
-    if (!cb) cb = x => x;
-    return this.create(vobj).save(cb);
+    return this.create(vobj).remove(cb);
   }
-  save(vobj, opts) {
+  /*save(vobj, opts) {
     if (!vobj) throw new Error('vobj is null');
     const all_opts = _.merge(SQLZ_INCLUDE_ALL, opts || {});
     return this.sqlm.create(vobj, all_opts);
-  }
+  }*/
   setKnex(db) {
     this.knex = db;
     // if(_.toLower(this.name)==='package') console.log('==', this.name, this.schema.obj);
@@ -149,3 +149,38 @@ class Model {
 }
 
 module.exports = { Model, ModelInstance, modelFactory };
+
+/**
+ * Perform an "Upsert" using the "INSERT ... ON CONFLICT ... " syntax in PostgreSQL 9.5
+ * @link http://www.postgresql.org/docs/9.5/static/sql-insert.html
+ * @author https://github.com/plurch
+ *
+ * @param {string} tableName - The name of the database table
+ * @param {string} conflictTarget - The column in the table which has a unique index constraint
+ * @param {Object} itemData - a hash of properties to be inserted/updated into the row
+ * @returns {Promise} - A Promise which resolves to the inserted/updated row
+ */
+function _upsertItem(knex, tableName, conflictTarget, itemData) {
+   let exclusions = _.keys(itemData)
+       .filter(c => c !== conflictTarget)
+       .map(c => knex.raw('?? = EXCLUDED.??', [c, c]).toString())
+       .join(",\n");
+   
+   let insertString = knex(tableName).insert(itemData).toString();
+   let conflictString = knex.raw(` ON CONFLICT (??) DO UPDATE SET ${exclusions} RETURNING *;`, conflictTarget).toString();
+   let query = (insertString + conflictString).replace(/\?/g, '\\?');
+   // console.log('+', tableName, query);
+   return knex.raw(query)
+       //.on('query', data => console.log('Knex: ' + data.sql))
+       .then(result => {
+         //console.log( 'result', result.rows, result.rows[0]._id );
+         return [ result.rows[0]._id ];
+       });
+ }
+
+ function upsertItem(knex, tableName, conflictTarget, itemData) {
+  if( Array.isArray(itemData) ) {
+    return Promise.map(itemData, i => _upsertItem(knex, tableName, conflictTarget, i));
+  }
+  else return _upsertItem(knex, tableName, conflictTarget, itemData);
+ }

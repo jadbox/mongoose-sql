@@ -189,7 +189,7 @@ describe('Mongoose API', function() {
   it('create', function(d) {
     const s = new Sticker({ label: 'test123' });
     s.save((e, x) => {
-      //console.log('create', x);
+      //console.log('created _id', x);
       createdID = x;
       assert(e===null, 'error: ' + e);
       assert(!!x);
@@ -200,6 +200,7 @@ describe('Mongoose API', function() {
   it('findByID', function(d) {
     Sticker.findByID(createdID).exec((e, x) => {
       assert(e===null, 'error: ' + e);
+      //console.log('x', x);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -220,7 +221,7 @@ describe('Mongoose API', function() {
   it('findOne', function(d) {
     Sticker.findOne({ label: 'test123' }).exec((e, x) => {
       //console.log('found findOne', x);
-      assert(e===null, 'error: ' + e);
+      assert.isNull(e, 'error: ' + e);
       assert(x._id === createdID);
       assert(x.created);
       assert(x.label);
@@ -232,9 +233,9 @@ describe('Mongoose API', function() {
   it('where clause', function(d) {
     Sticker.where({ label: 'test123' }).findOne().exec((e, x) => {
       //console.log('found where.findOne', x);
-      assert(x._id === createdID);
-      assert(x.created);
-      assert(x.label);
+      assert.equal(x._id, createdID);
+      assert.isNotNull(x.created);
+      assert.equal(x.label, 'test123');
       //assert.ok(e);
       d();
     });
@@ -244,20 +245,41 @@ describe('Mongoose API', function() {
     Promise.all([ 
         Sticker.where({ label: 'test123' }).findOne().exec()
     ]).then( ([x]) => {
-      assert(x._id === createdID);
-      assert(x.created);
-      assert(x.label);
+      assert.equal(x._id, createdID);
+      assert.isNotNull(x.created);
+      assert.equal(x.label, 'test123');
       //assert.ok(e);
       d();
+    });
+  });
+
+  it('upsert', function(d) {
+    const s = new Sticker({ _id: createdID, label: 'test555' });
+    s.save((e, x) => {
+      //console.log('created _id', x);
+      assert.isNull(e, 'error: ' + e);
+      assert(!!x);
+      Sticker.find().exec((e, x) => {
+        assert.equal(e, null, 'error: ' + e);
+
+        const old = _.filter(x, y=>y.label==='test123');
+        assert.equal(old.length, 0, 'but found ' + old.length);
+
+        const n = _.filter(x, y=>y.label==='test555');
+        assert.equal(n.length, 1);
+        assert.equal(n[0]._id, createdID);
+        assert.isNotNull(n[0].created);
+        d();
+      });
     });
   });
 
   it('delete', function(d) {
     const s = new Sticker({ _id: createdID });
     s.remove((e, x) => {
-      assert(e === null);
-      assert(!!x);
-      assert(x === createdID);
+      assert.isNull(e);
+      //assert(!!x);
+      assert.equal(x, createdID);
       //assert.ok(e);
       d();
     });
@@ -367,8 +389,8 @@ describe('Mongoose API', function() {
           assert(e === null, 'error:' + e);
           assert(x.recommendedPackages[0] === recommendedPackages[0]);
           assert(x.recommendedPackages[1] === recommendedPackages[1]);
-          s.remove((e, x) => {
-            assert(e === null, 'error:' + e);
+          s.remove(() => {
+            //assert(e === null, 'error:' + e);
             d();
           });
         });
