@@ -103,8 +103,8 @@ describe('Mongoose API', function() {
 
   it('find', function(d) {
     Sticker.find().exec((e, x) => {
-      //console.log('found find', x.length);
-      assert(x.length > 5);
+      console.log('found find', x.length);
+      assert(x.length > 0);
       //assert.ok(e);
       d();
     });
@@ -113,9 +113,9 @@ describe('Mongoose API', function() {
   it('find using promise', function(d) {
     Promise.when(Sticker.find().exec(), x => {
       //console.log('found find', x.length);
-      assert(x.length > 5);
+      assert(x.length > 0);
       Sticker.find().exec().then(x => {
-        assert(x.length > 5);
+        assert(x.length > 0);
         d();
       });
     });
@@ -127,8 +127,8 @@ describe('Mongoose API', function() {
       ])
       .then(x => {
         //console.log('found find', x.length);
-        assert(x[0].length > 5);
-        assert(x[1].length > 5);
+        assert(x[0].length > 0);
+        assert(x[1].length > 0);
         d();
     }).catch(e=> { throw new Error(e); });
   });
@@ -139,8 +139,8 @@ describe('Mongoose API', function() {
         Promise.when(Sticker.find().exec())
       ])
       .then(x => {
-        assert(x[0].length > 5);
-        assert(x[1].length > 5);
+        assert(x[0].length > 0);
+        assert(x[1].length > 0);
         d();
     }).catch(e=> { throw new Error(e); });
   });
