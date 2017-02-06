@@ -100,7 +100,10 @@ class ModelInstance {
         ({ [key]: val, [s.table]: id })
       );
       // Insert all many related elements to field at once
-      if(batch.length > 0) q = q.then(() => this.knex.batchInsert(j.ltable, batch));
+      if(batch.length > 0) q = q.then(() => 
+        this.knex.batchInsert(j.ltable, batch)
+          .catch(()=>null) // PATCH: fixes upsert on join tables
+      );
     });
 
     return q;
