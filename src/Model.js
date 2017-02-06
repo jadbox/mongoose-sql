@@ -13,6 +13,26 @@ function init(_knex) {
   return { Model, ModelInstance, modelFactory };
 }
 
+// Allows access to model props from base ModelInstance
+function makeInstanceProxy(model) {
+  return new Proxy(model, {
+      get: function(target, name) {
+          if (!(name in target)) {
+              //console.log("Getting non-existant property '" + name + "'");
+              return model.vobj[name];
+          }
+          return target[name];
+      },
+      set: function(target, name, value) {
+          if (!(name in target)) {
+              //console.log("Setting non-existant property '" + name + "', initial value: " + value);
+          }
+          model.vobj[name] = value;
+          return true;
+      }
+  });
+}
+
 // Model instance
 class ModelInstance {
   constructor(Schema, vobj) {
@@ -24,10 +44,10 @@ class ModelInstance {
     //this.sqlz = model.create(vbo);
   }
   toJSON() {
-    return JSON.stringify(this.vobj);
+    return this.vobj;
   }
   toString() {
-    return toJSON();
+    return JSON.toString(this.toJSON());
   }
   delete(cb) {
     return remove(cb);
@@ -127,7 +147,9 @@ class Model {
   }
   create(vobj) {
     const m = new ModelInstance(this._schema, vobj);
-    return m.setKnex(this.knex);
+    m.setKnex(this.knex);
+    const proxyModel = makeInstanceProxy(m);
+    return proxyModel;
   }
   where(params) {
     return this.find(params);
@@ -135,6 +157,7 @@ class Model {
   find(params) {
     return new Query(this, params, false, this.knex);
   }
+  // Returns models
   findByID(id) {
     return this.findOne(id);
   }
@@ -245,7 +268,7 @@ function removeInvalidFields(_schema, obj) {
     .keys()
     .value();
 
-  // console.log("******removed********", r);
+  //console.log(_schema.table, "******removed********", r);
   return _.omit(obj, ...r); //l->r
 }
 

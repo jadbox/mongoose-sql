@@ -188,6 +188,13 @@ describe('Mongoose API', function() {
   let createdID = -1;
   it('create', function(d) {
     const s = new Sticker({ label: 'test123', notValid:'ignore' });
+    assert.equal(s.vobj.label, 'test123');
+    assert.equal(s.label, 'test123');
+    
+    const s2 = _.merge(s, { notValid:'bar' });
+    assert.equal(s.vobj.notValid, 'bar', 'notValid not showing up on model.vobj');
+    assert.equal(s.notValid, 'bar', 'merge into model not occurring for proxy');
+
     s.save((e, x) => {
       //console.log('created _id', x);
       createdID = x;

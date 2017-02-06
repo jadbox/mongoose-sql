@@ -158,7 +158,10 @@ module.exports = class Query {
     return q.then(x => {
         //console.log(this._i, 'returned')
         // extract single element
-        if (this.justOne) x = x.length > 0 ? x[0] : null;
+        if (this.justOne) { 
+          x = x.length > 0 ? x[0] : null;
+          if(x) x = this.model.create(x); // convert to ModelInstance
+        }
 
         //console.log('returned', i);
         if(cb) cb(null, x);
