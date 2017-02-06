@@ -23,27 +23,26 @@ class Connection {
   constructor(knex) {
     this.knex = knex;
     this.collections = {
-      'caches': { 
-        drop: (x,cb) => {
+      caches: {
+        drop: (x, cb) => {
           console.log('caches STUB ' + x);
-          if(cb) cb();
+          if (cb) cb();
         }
       }
     };
   }
   on(name, fn) {
     //name == connected
-    if(name === 'connected') 
-      setTimeout(x=>fn(), 100); // connection delay
+    if (name === 'connected') setTimeout(x => fn(), 100); // connection delay
   }
 }
 
 // Model factor method: returns Model
 // 2nd param schema is optional if cached before
 function modelNew(name, schema) {
-  if(models[name]) return models[name];
+  if (models[name]) return models[name];
 
-  if(!schema) throw new Error('no schema provided or in cache: ' + name);
+  if (!schema) throw new Error('no schema provided or in cache: ' + name);
   const model = modelFactory(name, schema);
   model.setKnex(knex);
   // new Model(name, schema);
@@ -56,11 +55,11 @@ function modelNew(name, schema) {
 // Sequelize init, returns knex instance
 function connect(params) {
   if (DEBUG) console.log('sequelize lib init');
-  if(!knex) {
+  if (!knex) {
     knex = Knex(params);
     if (DEBUG) knex.raw('select 1+1 as result').then(function() {
-      console.log('sql connected');
-    });
+        console.log('sql connected');
+      });
   }
 
   return {

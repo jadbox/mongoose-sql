@@ -209,7 +209,8 @@ function sync(knex, _schema) {
       r2 = r2.createTableIfNotExists(v.ltable, function(table) {
         //table.increments("_id"); no id needed
         table.integer(_schema.table).unsigned().index();
-        table.foreign(_schema.table)
+        table
+          .foreign(_schema.table)
           .references(_schema.table + '._id')
           .onDelete('CASCADE');
 
@@ -326,7 +327,8 @@ function migrateTable(knex, _schema, objs) {
   //schemaMap[_schema.table] = _schema;
   objs = _.map(objs, v => moveIDKey(v));
 
-  _.map(_schema.refs, field => _.map(objs, o => { // map over schema refs // extract fields
+  _.map(_schema.refs, field => _.map(objs, o => {
+    // map over schema refs // extract fields
     //console.log('=======k', field);
     //process.exit(1);
     const val = o[field];

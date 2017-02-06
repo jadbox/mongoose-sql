@@ -27,7 +27,7 @@ module.exports = class Schema {
       validate: (v, onErrorMsg) => {
         // TODO stub
       }
-    }
+    };
   }
 
   static get ObjectId() {

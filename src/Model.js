@@ -16,20 +16,20 @@ function init(_knex) {
 // Allows access to model props from base ModelInstance
 function makeInstanceProxy(model) {
   return new Proxy(model, {
-      get: function(target, name) {
-          if (!(name in target)) {
-              //console.log("Getting non-existant property '" + name + "'");
-              return model.vobj[name];
-          }
-          return target[name];
-      },
-      set: function(target, name, value) {
-          if (!(name in target)) {
-              //console.log("Setting non-existant property '" + name + "', initial value: " + value);
-          }
-          model.vobj[name] = value;
-          return true;
+    get: function(target, name) {
+      if (!(name in target)) {
+        //console.log("Getting non-existant property '" + name + "'");
+        return model.vobj[name];
       }
+      return target[name];
+    },
+    set: function(target, name, value) {
+      if (!(name in target)) {
+        //console.log("Setting non-existant property '" + name + "', initial value: " + value);
+      }
+      model.vobj[name] = value;
+      return true;
+    }
   });
 }
 
@@ -61,7 +61,7 @@ class ModelInstance {
       .where('_id', id)
       .delete()
       .then(x => {
-        if(cb) cb(null, id);
+        if (cb) cb(null, id);
         return id;
       })
       .catch(cb);
@@ -73,15 +73,15 @@ class ModelInstance {
     let vobj = this.vobj;
     vobj = removeInvalidFields(s, vobj);
     vobj = correctJsonFields(s, vobj);
-    
+
     if (!vobj) throw new Error('empty object to save');
-    const removedJoins = _(vobj).pickBy( (v,k) => !s.joins[k] ).value(); // remove joins
-    
+    const removedJoins = _(vobj).pickBy((v, k) => !s.joins[k]).value(); // remove joins
+
     return upsertItem(this.knex, s.table, removedJoins)
-      .then( ids => this.vobj._id = ids[0] ) // save model's id
-      .then( id => this._saveAssociations(id, vobj).then(()=>id) )
+      .then(ids => this.vobj._id = ids[0]) // save model's id
+      .then(id => this._saveAssociations(id, vobj).then(() => id))
       .then(id => {
-        if(cb) cb(null, id);
+        if (cb) cb(null, id);
         return id;
       })
       .catch(cb);
@@ -91,19 +91,21 @@ class ModelInstance {
     const s = this.Schema;
     let q = Promise.resolve(id);
     // for each join field
-    _.forEach(s.joins, (j,key) => {
-      if(!vobj[key]) {
+    _.forEach(s.joins, (j, key) => {
+      if (!vobj[key]) {
         console.log('no relationship elements to save');
         return;
       }
-      const batch = _.map(vobj[key], val =>
-        ({ [key]: val, [s.table]: id })
-      );
+      const batch = _.map(vobj[key], val => ({ [key]: val, [s.table]: id }));
       // Insert all many related elements to field at once
-      if(batch.length > 0) q = q.then(() => 
-        this.knex.batchInsert(j.ltable, batch)
-          .catch(()=>null) // PATCH: fixes upsert on join tables
-      );
+      if (batch.length > 0)
+        q = q.then(
+          () =>
+            this.knex
+              .batchInsert(j.ltable, batch)
+              .then(x => x) // convert to promise
+              .catch(() => null) // PATCH: fixes upsert on join tables
+        );
     });
 
     return q;
@@ -127,8 +129,14 @@ function modelFactory(name, schema) {
   };
 
   // copy static methods over
-  const fields = ['find', 'findByID', 'findById', 
-      'setKnex', 'findOne', 'where'];
+  const fields = [
+    'find',
+    'findByID',
+    'findById',
+    'setKnex',
+    'findOne',
+    'where'
+  ];
   _.forEach(fields, f => modelType[f] = model[f].bind(model));
   modelType.Model = model;
   modelType.schema = model.schema;
@@ -159,7 +167,8 @@ class Model {
   findByID(id) {
     return this.findOne(id);
   }
-  findById(id) { // alias
+  findById(id) {
+    // alias
     return this.findByID(id);
   }
   findOne(params) {
@@ -191,40 +200,40 @@ module.exports = { Model, ModelInstance, modelFactory };
 function _upsertItem(knex, tableName, itemData) {
   const insert = knex(tableName).insert(itemData).toString();
   const itemDataWithoutId = _.omit(itemData, '_id');
-  const update = knex(tableName).update(itemDataWithoutId).returning(tableName+'._id');
-  const updateFix = update.toString().replace(/^update ([`"])[^\1]+\1 set/i, '');
+  const update = knex(tableName)
+    .update(itemDataWithoutId)
+    .returning(tableName + '._id');
+  const updateFix = update
+    .toString()
+    .replace(/^update ([`"])[^\1]+\1 set/i, '');
 
   let query = `${insert} ON CONFLICT (_id) DO UPDATE SET ${updateFix}`;
   return knex.raw(query).then(x => {
-    return [ x.rows[0]._id ];
+    return [x.rows[0]._id];
   });
- }
+}
 
 // Simple insert operation
 function insertItem(knex, tableName, itemData) {
-      const q = knex
-        .insert(itemData)
-        .into(tableName)
-        .returning('_id');
+  const q = knex.insert(itemData).into(tableName).returning('_id');
 
-      return q; //.then(x => {console.log(x); return x; });
+  return q; //.then(x => {console.log(x); return x; });
 }
 
 // Insert or update element, depending on if model has _id
 function upsertItem(knex, tableName, itemData) {
-  if( Array.isArray(itemData) ) {
+  if (Array.isArray(itemData)) {
     return Promise.map(itemData, i => {
-      if(itemData._id) return _upsertItem(knex, tableName, i);
+      if (itemData._id) return _upsertItem(knex, tableName, i);
       else return insertItem(knex, tableName, i);
     });
-  }
-  else {
-    if(itemData._id) return _upsertItem(knex, tableName, itemData);
+  } else {
+    if (itemData._id) return _upsertItem(knex, tableName, itemData);
     else return insertItem(knex, tableName, itemData);
   }
- }
+}
 
- // stringify jsonb fields
+// stringify jsonb fields
 function correctJsonFields(_schema, obj) {
   const r = _(obj)
     .pickBy((v, k) => !_schema.joins[k] && (_.isObject(v) || _.isArray(v)))
@@ -244,4 +253,3 @@ function removeInvalidFields(_schema, obj) {
 
   return _.omit(obj, ...r);
 }
-

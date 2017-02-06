@@ -32,17 +32,16 @@ module.exports = class Query {
   }
   findOne(params) {
     if (!isNaN(parseFloat(this.params))) this.params = params;
-    else if (params && this.params) 
-      this.params = _.merge(this.params, params);
-      
+    else if (params && this.params) this.params = _.merge(this.params, params);
+
     this.justOne = true;
     return this;
   }
   findByID(params) {
-    return this.findOne(params)
+    return this.findOne(params);
   }
   findById(params) {
-    return this.findByID(params)
+    return this.findByID(params);
   }
   find(params) {
     findOne(params);
@@ -51,12 +50,11 @@ module.exports = class Query {
   }
   sort(field) {
     // TODO: POPULATE
-    if(field.charAt(0) !== '-') 
+    if (field.charAt(0) !== '-')
       this.ops.push(q => q.orderBy(this.schema.table + '.' + field)); //'desc'
     else {
       field = field.substring(1);
-      this.ops.push(q => 
-        q.orderBy(this.schema.table + '.' + field, 'desc'));
+      this.ops.push(q => q.orderBy(this.schema.table + '.' + field, 'desc'));
     }
     return this;
   }
@@ -112,8 +110,10 @@ module.exports = class Query {
     // Where clauses
     if (_.isObject(this.params)) {
       // Fixes where fields that are ambiguous to the table
-      this.params = _.mapKeys(this.params, 
-        (v,k) => this.schema.table + '.' + k);
+      this.params = _.mapKeys(
+        this.params,
+        (v, k) => this.schema.table + '.' + k
+      );
       q = q.where(this.params);
     } else if (!isNaN(parseFloat(this.params)))
       q = q.where(this.schema.table + '._id', parseFloat(this.params));
@@ -125,14 +125,13 @@ module.exports = class Query {
       //if(!prop) throw new Error('field not found '+f);
 
       const key = 'x' + K;
-      q = q.leftOuterJoin(
+      q = q
+        .leftOuterJoin(
           prop.ltable + ' AS L',
           _schema.table + '._id',
           'L.' + _schema.table
         )
-        .leftOuterJoin(
-          prop.refTable + ' AS ' + key, 
-          'L.' + f, key + '._id');
+        .leftOuterJoin(prop.refTable + ' AS ' + key, 'L.' + f, key + '._id');
     });
 
     // == Nested one-many group
@@ -158,15 +157,15 @@ module.exports = class Query {
 
     //console.log( this._i, q.toString() );
     return q.then(x => {
-        //console.log(this._i, 'returned')
-        // extract single element
-        if (this.justOne) { 
-          x = x.length > 0 ? x[0] : null;
-          if(x) x = this.model.create(x); // convert to ModelInstance
-        }
+      //console.log(this._i, 'returned')
+      // extract single element
+      if (this.justOne) {
+        x = x.length > 0 ? x[0] : null;
+        if (x) x = this.model.create(x); // convert to ModelInstance
+      }
 
-        if(cb) cb(null, x);
-        return x;
+      if (cb) cb(null, x);
+      return x;
     });
   }
 };
