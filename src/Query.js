@@ -5,6 +5,8 @@ const DEBUG = process.env.DEBUG || 1;
 function makeAgg(knex, k, field) {
   return knex.raw('json_agg(x' + k + ') AS "' + field + '"');
 }
+
+// Many to many select field with only _id field
 function makeAggId(knex, k, field) {
   return knex.raw('json_agg(x' + k + '._id) AS "' + field + '"');
 }
@@ -14,7 +16,8 @@ function makeRow(knex, k, field) {
   return knex.raw('row_to_json(x' + k + ') AS "' + field + '"');
 }
 
-var i = 0;
+let i = 0; // keep global query operation id
+
 // Chain operations on find() and findjustOne
 module.exports = class Query {
   constructor(model, params, justOne, _knex) {
@@ -26,7 +29,6 @@ module.exports = class Query {
     this.ops = [];
     this.justOne = justOne;
     this._i = ++i;
-    //this.joinsTableIDs = _.cloneDeep(this.schema.joins);
   }
   findOne(params) {
     if (!isNaN(parseFloat(this.params))) this.params = params;
@@ -163,7 +165,6 @@ module.exports = class Query {
           if(x) x = this.model.create(x); // convert to ModelInstance
         }
 
-        //console.log('returned', i);
         if(cb) cb(null, x);
         return x;
     });

@@ -77,11 +77,7 @@ class ModelInstance {
     if (!vobj) throw new Error('empty object to save');
     const removedJoins = _(vobj).pickBy( (v,k) => !s.joins[k] ).value(); // remove joins
     
-    return upsertItem(this.knex, s.table, removedJoins) 
-      //this.knex //this.model.save(this.vobj)
-      //.insert(removedJoins)
-      //.into(this.Schema.table)
-      //.returning('_id')
+    return upsertItem(this.knex, s.table, removedJoins)
       .then( ids => this.vobj._id = ids[0] ) // save model's id
       .then( id => this._saveAssociations(id, vobj).then(()=>id) )
       .then(id => {
@@ -100,7 +96,6 @@ class ModelInstance {
         console.log('no relationship elements to save');
         return;
       }
-      //console.log('joining', key);
       const batch = _.map(vobj[key], val =>
         ({ [key]: val, [s.table]: id })
       );
@@ -170,11 +165,6 @@ class Model {
   remove(vobj, cb) {
     return this.create(vobj).remove(cb);
   }
-  /*save(vobj, opts) {
-    if (!vobj) throw new Error('vobj is null');
-    const all_opts = _.merge(SQLZ_INCLUDE_ALL, opts || {});
-    return this.sqlm.create(vobj, all_opts);
-  }*/
   setKnex(db) {
     this.knex = db;
     // if(_.toLower(this.name)==='package') console.log('==', this.name, this.schema.obj);
@@ -201,43 +191,24 @@ function _upsertItem(knex, tableName, itemData) {
   const update = knex(tableName).update(itemDataWithoutId).returning(tableName+'._id');
   const updateFix = update.toString().replace(/^update ([`"])[^\1]+\1 set/i, '');
 
-  //let query = `${insert} ON DUPLICATE KEY UPDATE ${updateFix}`;
   let query = `${insert} ON CONFLICT (_id) DO UPDATE SET ${updateFix}`;
-  // console.log('+', tableName, query);
   return knex.raw(query).then(x => {
-    // console.log('--', x.rows[0]._id)
     return [ x.rows[0]._id ];
-  })
-  /*
-   let exclusions = _.keys(itemData)
-       .filter(c => c !== conflictTarget)
-       .map(c => knex.raw('?? = EXCLUDED.??', [c, c]).toString())
-       .join(",\n");
-   
-   let insertString = knex(tableName).insert(itemData).toString();
-   let conflictString = knex.raw(` ON CONFLICT (??) DO UPDATE SET ${exclusions} RETURNING *;`, conflictTarget).toString();
-   let query = (insertString + conflictString).replace(/\?/g, '\\?');
-   // console.log('+', tableName, query);
-   return knex.raw(query)
-       //.on('query', data => console.log('Knex: ' + data.sql))
-       .then(result => {
-         //console.log( 'result', result.rows, result.rows[0]._id );
-         return [ result.rows[0]._id ];
-       });
-       */
+  });
  }
 
+// Simple insert operation
 function insertItem(knex, tableName, itemData) {
-      const q = knex //this.model.save(this.vobj)
+      const q = knex
         .insert(itemData)
         .into(tableName)
         .returning('_id');
-        
-      //console.log('q', q.toString());
+
       return q; //.then(x => {console.log(x); return x; });
 }
 
- function upsertItem(knex, tableName, itemData) {
+// Insert or update element, depending on if model has _id
+function upsertItem(knex, tableName, itemData) {
   if( Array.isArray(itemData) ) {
     return Promise.map(itemData, i => {
       if(itemData._id) return _upsertItem(knex, tableName, i);
@@ -258,17 +229,16 @@ function correctJsonFields(_schema, obj) {
     .mapValues(JSON.stringify)
     .value();
 
-  // console.log("******corrected********", r);
-  return _.merge(obj, r); //l->r
+  return _.merge(obj, r);
 }
 
+// Remove fields that are not specified in the schema
 function removeInvalidFields(_schema, obj) {
   const r = _(obj)
     .pickBy((v, k) => k !== '_id' && !_schema.props[k] && !_schema.joins[k])
     .keys()
     .value();
 
-  //console.log(_schema.table, "******removed********", r);
-  return _.omit(obj, ...r); //l->r
+  return _.omit(obj, ...r);
 }
 
