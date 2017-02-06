@@ -412,12 +412,12 @@ function migrateTablePost(knex) {
         .then(x => x);
     } else {
       // save associations
-      return Promise.map(e.val, val => {
+      return Promise.all(_.map(e.val, val => {
         return knex(e.ltable)
           .insert({ [e.field]: val, [e.table]: e.id })
           .returning([[e.field], [e.table]])
           .then(x => x);
-      });
+      }));
     }
   });
 
@@ -427,30 +427,37 @@ function migrateTablePost(knex) {
 // parse(name, params, knex) {
 function migrateSchemas(knex, mongoose, schemas) {
   const _migrateSchema = migrateSchema.bind(null, knex, mongoose);
-  return Promise.mapSeries(schemas, _migrateSchema).then(y => {
+
+  let q = _.reduce(schemas, (qq, s) => {
+    return qq.then(() => _migrateSchema(s));
+  }, Promise.resolve());
+
+  q = q.then(y => {
     console.log('non-relational schemas migrated');
-    migrateTablePost(knex).then(x => console.log('all schemas migrated'));
+    return migrateTablePost(knex).then(x => console.log('all schemas migrated'));
   });
+  return q;
 }
 
 // TODO cleanup: move to migration
 function migrateSchema(knex, mongoose, Base) {
   console.log('migrating', Base.table);
-  return new Promise(function(resolve, reject) {
-    Base.mongoose.find().exec((e, x) => {
+  return Promise.resolve().then(() => Base.mongoose.find().exec()).then(x => {
+
       /*if(Base.table.indexOf('ackage') > -1) {
         console.log('catching Package');
         _(x).filter(y=>y.pkgStatsVisibility)
           .map(y=>console.log(y)).value();
         return;
       }*/
+      //console.log(Base.table, x);
 
-      if (x.length === undefined) throw new Error('no length');
-      migrateTable(knex, Base, x).then(x1 => {
+      if (!x || !x.length) throw new Error('no length on ' + x);
+      return migrateTable(knex, Base, x).then(x1 => {
         if (!x) x = [];
         console.log(Base.table + ' migrated rows ' + x.length);
-        resolve('done');
+        //resolve('done');
       });
     });
-  });
+
 }

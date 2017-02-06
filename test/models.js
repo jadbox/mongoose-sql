@@ -275,6 +275,9 @@ function init(Schema) { //Schema
       type: Schema.ObjectId,
       ref: 'User',
       type: String
+    },
+    email: {
+      type: String
     }
   };
 

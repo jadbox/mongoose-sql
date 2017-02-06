@@ -11,7 +11,7 @@ const mapschema = require('../src/mapschema');
 const Promise = require('q').Promise;
 
 mongoose.connect(MONGO_CONNECTION);
-mongoose.Promise = require('q');
+mongoose.Promise = require('q').Promise;
 //const mongoose_proxy = require('./index');
 function init() {
   /*
@@ -51,8 +51,9 @@ function init() {
 
   console.log('syncing', migrationModels);
 
-  Promise
-    .map(migrationModels, m => mapschema.sync(knex, migrationTables[m]))
+  Promise.all(
+      _.map(migrationModels, m => mapschema.sync(knex, migrationTables[m]))
+    )
     .then(migrate);
 
   function migrate() {
