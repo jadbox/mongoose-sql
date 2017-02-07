@@ -5,6 +5,17 @@ const Promise = require('q');
 const _ = require('lodash');
 
 const mp = require('../src/index.js');
+const e = process.env;
+mp.connect({
+    client: e.DB_CLIENT || 'pg',
+    connection: {
+      host: e.DB_HOST || '127.0.0.1',
+      user: e.DB_USER || 'jonathan.dunlap',
+      password: e.DB_PASSWORD || '',
+      database: e.DB_DATABASE || 'test'
+    }
+  });
+
 const Schema = mp.Schema;
 const Models = require('./models').init(Schema);
 

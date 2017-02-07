@@ -67,7 +67,7 @@ function connect(params) {
   };
 }
 
-if (e.PSQL_INIT || true) {
+if (e.PSQL_INIT) {
   connect({
     client: e.DB_CLIENT || 'pg',
     connection: {
