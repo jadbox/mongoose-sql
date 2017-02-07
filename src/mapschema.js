@@ -192,7 +192,7 @@ function sync(knex, _schema) {
           z = table.integer(k).unsigned();
         else if (v.ref) {
           z = table.integer(k).unsigned();
-          table.foreign(k).references(v.refTable + '._id');
+          table.foreign(k).references(v.refTable + '._id').onDelete('SET NULL');
         }
         if (!z) {
           console.warn(_schema.table + ': lacks type for prop ' + v.type);

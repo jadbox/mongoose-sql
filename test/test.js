@@ -396,8 +396,7 @@ describe('Mongoose API', function() {
         .exec((e, x) => {
           assert.isNull(e, 'error: ' + e);
           assert.equal(x.name, 'test123', 'label does not match test123: ' + x.name);
-          assert.equal(x.recommendedPackages[0], recommendedPackages[0], x.recommendedPackages + '-' + recommendedPackages);
-          assert.equal(x.recommendedPackages[1], recommendedPackages[1], x.recommendedPackages + '-' + recommendedPackages);
+          assert.sameMembers(x.recommendedPackages, recommendedPackages, x.recommendedPackages + '-' + recommendedPackages);
           s.remove(() => {
             //assert(e === null, 'error:' + e);
             d();
