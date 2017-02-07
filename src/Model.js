@@ -49,6 +49,9 @@ class ModelInstance {
   toString() {
     return JSON.toString(this.toJSON());
   }
+  toObject() {
+    return this.vobj;
+  }
   delete(cb) {
     return remove(cb);
   } // alias
