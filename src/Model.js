@@ -13,21 +13,19 @@ function init(_knex) {
   return { Model, ModelInstance, modelFactory };
 }
 
-// Allows access to model props from base ModelInstance
+// Allows access to model props from base ModelInstance.vobj property
 function makeInstanceProxy(model) {
   return new Proxy(model, {
     get: function(target, name) {
       if (!(name in target)) {
-        //console.log("Getting non-existant property '" + name + "'");
         return model.vobj[name];
       }
       return target[name];
     },
     set: function(target, name, value) {
       if (!(name in target)) {
-        //console.log("Setting non-existant property '" + name + "', initial value: " + value);
+        model.vobj[name] = value;
       }
-      model.vobj[name] = value;
       return true;
     }
   });
@@ -37,11 +35,8 @@ function makeInstanceProxy(model) {
 class ModelInstance {
   constructor(Schema, vobj) {
     this.vobj = vobj;
-    //this.model = model;
-    this.Schema = Schema; // sugar
-    //console.log('this.Schema', this.Schema)
+    this.Schema = Schema;
     if (!this.Schema.table) throw new Error('invalid table');
-    //this.sqlz = model.create(vbo);
   }
   toJSON() {
     return this.vobj;
@@ -54,8 +49,8 @@ class ModelInstance {
   }
   delete(cb) {
     return remove(cb);
-  } // alias
-  // todo: removeBy
+  } 
+  // Delete this model (requires _id to be set)
   remove(cb) {
     const id = this.vobj._id;
     if (!id) throw new Error('invalid _id');
@@ -70,7 +65,7 @@ class ModelInstance {
       .catch(cb);
   }
 
-  // Todo upsert
+  // Save performs an upsert operation
   save(cb) {
     const s = this.Schema;
     let vobj = this.vobj;
@@ -90,6 +85,7 @@ class ModelInstance {
       .catch(cb);
   }
 
+  // Save to all related join tables
   _saveAssociations(id, vobj) {
     const s = this.Schema;
     let q = Promise.resolve(id);
@@ -110,10 +106,7 @@ class ModelInstance {
       if (batch.length > 0)
         q = q.then(
           () =>
-            this.knex
-              .batchInsert(j.ltable, batch)
-              .then(x => x) // convert to promise
-              //.catch(() => null) // PATCH: fixes upsert on join tables
+            this.knex.batchInsert(j.ltable, batch)
         );
     });
 
@@ -127,7 +120,7 @@ class ModelInstance {
 }
 
 // Returns a function that creates a ModelInstance
-// Function object has non-instance operation methods (like findByID)
+// Function object has non-instance static operation methods of Model (like findByID)
 function modelFactory(name, schema) {
   if (!_.isObject(schema) || !schema) new Error('no schema');
   if (!_.isString(name)) throw new Error('no name');
@@ -199,10 +192,8 @@ module.exports = { Model, ModelInstance, modelFactory };
 /**
  * Perform an "Upsert" using the "INSERT ... ON CONFLICT ... " syntax in PostgreSQL 9.5
  * @link http://www.postgresql.org/docs/9.5/static/sql-insert.html
- * @author https://github.com/plurch
  *
  * @param {string} tableName - The name of the database table
- * @param {string} conflictTarget - The column in the table which has a unique index constraint
  * @param {Object} itemData - a hash of properties to be inserted/updated into the row
  * @returns {Promise} - A Promise which resolves to the inserted/updated row
  */
