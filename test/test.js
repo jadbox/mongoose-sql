@@ -299,14 +299,10 @@ describe('Mongoose API', function() {
       //assert(!!x);
       assert.equal(x, createdID);
       //assert.ok(e);
+      createdID = -1;
       d();
     });
   });
-
-  after(function() {
-    const s = new Sticker({ _id: createdID });
-    s.remove((e, x) => {});
-  })
 
   let complexPackageID; // used for later tests on associations
   it('get id of a complex package', function(d) {
@@ -397,8 +393,26 @@ describe('Mongoose API', function() {
       });
   });
 
+  let nestedID = -1;
   it('create with nested', function(d) {
     const s = new Package({ name: 'test123', recommendedPackages: recommendedPackages });
+    s.save((e, id) => {
+      assert.isNull(e, 'error: ' + e);
+      assert(!!s.vobj._id, 'no ID given to saved object');
+      assert.equal(id, s.vobj._id, `saved id ${id} not matches model: ${s.vobj._id}`);
+      nestedID = s.vobj._id;
+      Package.findByID(s.vobj._id)
+        .exec((e, x) => {
+          assert.isNull(e, 'error: ' + e);
+          assert.equal(x.name, 'test123', 'label does not match test123: ' + x.name);
+          assert.sameMembers(x.recommendedPackages, recommendedPackages, x.recommendedPackages + '-' + recommendedPackages);
+          d();
+        });
+    });
+  });
+  
+  it('remove an item from an associated table', function(d) {
+    const s = new Package({ _id: nestedID, name: 'test123', recommendedPackages: [recommendedPackages[0]] });
     s.save((e, id) => {
       assert.isNull(e, 'error: ' + e);
       assert(!!s.vobj._id, 'no ID given to saved object');
@@ -406,15 +420,34 @@ describe('Mongoose API', function() {
       Package.findByID(s.vobj._id)
         .exec((e, x) => {
           assert.isNull(e, 'error: ' + e);
-          assert.equal(x.name, 'test123', 'label does not match test123: ' + x.name);
-          assert.sameMembers(x.recommendedPackages, recommendedPackages, x.recommendedPackages + '-' + recommendedPackages);
-          s.remove(() => {
-            //assert(e === null, 'error:' + e);
-            d();
-          });
+          assert.equal(x.recommendedPackages.length, 1);
+          assert.equal(x.recommendedPackages[0], [recommendedPackages[0]], 
+            x.recommendedPackages + '-' + recommendedPackages[0]);
+          d();
         });
     });
   });
+
+  it('remove record for associated tests', function(d) {
+    const s = new Package({ _id: nestedID });
+    s.remove(() => {
+      nestedID = -1;
+      d();
+    });
+  });
+
+
+
+  after(function() {
+    if(createdID > -1) {
+      const s = new Sticker({ _id: createdID });
+      s.remove((e, x) => {});
+    }
+    if(nestedID > -1) {
+      const s = new Package({ _id: nestedID });
+      s.remove(() => {});
+    }
+  })
 
   // save associations:
   /*

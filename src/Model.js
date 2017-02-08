@@ -100,6 +100,12 @@ class ModelInstance {
         return;
       }
       const batch = _.map(vobj[key], val => ({ [key]: val, [s.table]: id }));
+
+      // delete old join records
+      q = q.then(z => 
+        this.knex(j.ltable).where(s.table, id).delete()
+      );
+
       // Insert all many related elements to field at once
       if (batch.length > 0)
         q = q.then(
@@ -107,7 +113,7 @@ class ModelInstance {
             this.knex
               .batchInsert(j.ltable, batch)
               .then(x => x) // convert to promise
-              .catch(() => null) // PATCH: fixes upsert on join tables
+              //.catch(() => null) // PATCH: fixes upsert on join tables
         );
     });
 
