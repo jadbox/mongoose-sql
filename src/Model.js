@@ -99,7 +99,9 @@ class ModelInstance {
         console.log('no relationship elements to save');
         return;
       }
-      const batch = _.map(vobj[key], val => ({ [key]: val, [s.table]: id }));
+      let batch = _.map(vobj[key], val => ({ [key]: val, [s.table]: id }));
+      // ensure both keys have values
+      batch = _.filter(batch, y => !!y[key] && !!y[s.table]);
 
       // delete old join records
       q = q.then(z => 

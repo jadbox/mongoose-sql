@@ -163,6 +163,9 @@ module.exports = class Query {
         x = x.length > 0 ? x[0] : null;
         if (x) x = this.model.create(x); // convert to ModelInstance
       }
+      else {
+        x = _.map(x, y => this.model.create(y));
+      }
 
       if (cb) cb(null, x);
       return x;
