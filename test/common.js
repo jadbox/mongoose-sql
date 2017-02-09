@@ -37,4 +37,4 @@ function base() {
     return mb;
 }
 
-module.exports = { initDB, getModels, base };
+module.exports = { initDB, getModels, base, mp };

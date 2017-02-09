@@ -1,6 +1,7 @@
 //const mongoose = require('mongoose');
 const Knex = require('knex');
 const core = require('./mapschema');
+const { migrate, migrateSchemas } = require('./migrate');
 let knex = null;
 
 const Schema = require('./Schema');
@@ -86,5 +87,6 @@ module.exports = exports = {
   init: connect,
   connect: connect,
   createConnection: connect,
-  migrateSchemas: core.migrateSchemas
+  migrateSchemas: migrateSchemas,
+  migrate: migrate
 };
