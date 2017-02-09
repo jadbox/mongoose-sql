@@ -33,9 +33,10 @@ function makeInstanceProxy(model) {
 
 // Model instance
 class ModelInstance {
-  constructor(Schema, vobj) {
+  constructor(Schema, vobj, findByID) {
     this.vobj = vobj;
     this.Schema = Schema;
+    this.findByID = findByID;
     if (!this.Schema.table) throw new Error('invalid table');
   }
   toJSON() {
@@ -50,6 +51,12 @@ class ModelInstance {
   delete(cb) {
     return remove(cb);
   } 
+  update(y) {
+    return this.findByID(this.vobj._id).exec().then(x => {
+      _.forEach(x.vobj, (v,k) => this.vobj[k] = v);
+      return y;
+    });
+  }
   // Delete this model (requires _id to be set)
   remove(cb) {
     const id = this.vobj._id;
@@ -82,6 +89,7 @@ class ModelInstance {
         .then(trx.commit)
         .catch(trx.rollback)
     })
+    .then( this.update.bind(this) )
     .then(id => {
       if (cb) cb(null, id);
       return id;
@@ -160,7 +168,7 @@ class Model {
     if (DEBUG) console.log('-- parsing ' + name + ' --');
   }
   create(vobj) {
-    const m = new ModelInstance(this._schema, vobj);
+    const m = new ModelInstance(this._schema, vobj, this.findByID.bind(this) );
     m.setKnex(this.knex);
     const proxyModel = makeInstanceProxy(m);
     return proxyModel;
