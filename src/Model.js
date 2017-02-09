@@ -75,18 +75,22 @@ class ModelInstance {
     if (!vobj) throw new Error('empty object to save');
     const removedJoins = _(vobj).pickBy((v, k) => !s.joins[k]).value(); // remove joins
 
-    return upsertItem(this.knex, s.table, removedJoins)
-      .then(ids => this.vobj._id = ids[0]) // save model's id
-      .then(id => this._saveAssociations(id, vobj).then(() => id))
-      .then(id => {
-        if (cb) cb(null, id);
-        return id;
-      })
-      .catch(cb);
+    return this.knex.transaction(trx => {
+      upsertItem(this.knex, s.table, removedJoins, trx)
+        .then(ids => this.vobj._id = ids[0]) // save model's id
+        .then(id => this._saveAssociations(id, vobj, trx).then(() => id))
+        .then(trx.commit)
+        .catch(trx.rollback)
+    })
+    .then(id => {
+      if (cb) cb(null, id);
+      return id;
+    })
+    .catch(err => { if(cb) cb(err); })
   }
 
   // Save to all related join tables
-  _saveAssociations(id, vobj) {
+  _saveAssociations(id, vobj, trx) {
     const s = this.Schema;
     let q = Promise.resolve(id);
     // for each join field
@@ -99,14 +103,14 @@ class ModelInstance {
 
       // delete old join records
       q = q.then(z => 
-        this.knex(j.ltable).where(s.table, id).delete()
+        this.knex(j.ltable).transacting(trx).where(s.table, id).delete()
       );
 
       // Insert all many related elements to field at once
       if (batch.length > 0)
         q = q.then(
           () =>
-            this.knex.batchInsert(j.ltable, batch)
+            this.knex.batchInsert(j.ltable, batch).transacting(trx)
         );
     });
 
@@ -197,7 +201,7 @@ module.exports = { Model, ModelInstance, modelFactory };
  * @param {Object} itemData - a hash of properties to be inserted/updated into the row
  * @returns {Promise} - A Promise which resolves to the inserted/updated row
  */
-function _upsertItem(knex, tableName, itemData) {
+function _upsertItem(knex, tableName, itemData, trx) {
   const insert = knex(tableName).insert(itemData).toString();
   const itemDataWithoutId = _.omit(itemData, '_id');
   const update = knex(tableName)
@@ -208,28 +212,28 @@ function _upsertItem(knex, tableName, itemData) {
     .replace(/^update ([`"])[^\1]+\1 set/i, '');
 
   let query = `${insert} ON CONFLICT (_id) DO UPDATE SET ${updateFix}`;
-  return knex.raw(query).then(x => {
+  return knex.raw(query).transacting(trx).then(x => {
     return [x.rows[0]._id];
   });
 }
 
 // Simple insert operation
-function insertItem(knex, tableName, itemData) {
-  const q = knex.insert(itemData).into(tableName).returning('_id');
+function insertItem(knex, tableName, itemData, trx) {
+  const q = knex.insert(itemData).into(tableName).returning('_id').transacting(trx);
 
   return q; //.then(x => {console.log(x); return x; });
 }
 
 // Insert or update element, depending on if model has _id
-function upsertItem(knex, tableName, itemData) {
+function upsertItem(knex, tableName, itemData, trx) {
   if (Array.isArray(itemData)) {
     return Promise.map(itemData, i => {
-      if (itemData._id) return _upsertItem(knex, tableName, i);
+      if (itemData._id) return _upsertItem(knex, tableName, i, trx);
       else return insertItem(knex, tableName, i);
     });
   } else {
-    if (itemData._id) return _upsertItem(knex, tableName, itemData);
-    else return insertItem(knex, tableName, itemData);
+    if (itemData._id) return _upsertItem(knex, tableName, itemData, trx);
+    else return insertItem(knex, tableName, itemData, trx);
   }
 }
 
