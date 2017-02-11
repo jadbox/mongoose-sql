@@ -395,7 +395,7 @@ describe('Mongoose API', function() {
 
   let nestedID = -1;
   it('create with nested', function(d) {
-    const s = new Package({ name: 'test123', recommendedPackages: recommendedPackages });
+    const s = new Package({ name: 'test123', recommendedPackages: recommendedPackages, cptPackageId: 1 });
     s.save((e, id) => {
       assert.isNull(e, 'error: ' + e);
       assert(!!s.vobj._id, 'no ID given to saved object');
@@ -412,7 +412,7 @@ describe('Mongoose API', function() {
   });
   
   it('remove an item from an associated table', function(d) {
-    const s = new Package({ _id: nestedID, name: 'test123', recommendedPackages: [recommendedPackages[0]] });
+    const s = new Package({ _id: nestedID, name: 'test123', recommendedPackages: [recommendedPackages[0]], cptPackageId: 1 });
     s.save((e, id) => {
       assert.isNull(e, 'error: ' + e);
       assert(!!s.vobj._id, 'no ID given to saved object');
