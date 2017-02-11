@@ -343,7 +343,7 @@ function init(Schema) { //Schema
     package: {
       type: Schema.ObjectId,
       ref: 'Package',
-      required: 'Banners must be associated with a package!'
+      //required: 'Banners must be associated with a package!' // taking this out by design
     }
   };
 

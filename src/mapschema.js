@@ -116,8 +116,9 @@ function parse(name, params, knex) {
   // TODO bug with validate
   const vRequired = _(params)
     .pickBy(x => x.required)
-    .mapValues(x => ({}))
+    .mapValues(x => ({ required: x.required }))
     .value();
+    
   // , validate: { notNull: true, notEmpty: true }
   // Collections without schema ref
   const vATypes = _(params)
@@ -196,8 +197,9 @@ function sync(knex, _schema) {
           console.warn(_schema.table + ': lacks type for prop ' + v.type);
           return;
         }
+        if (v.unique) z = z.unique();
+        if (v.required || v.notNullable) z = z.notNullable();
         if (v.default) z = z.defaultTo(v.default);
-        if (v.notNullable) z = z.notNullable();
       });
     });
 
