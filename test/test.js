@@ -112,6 +112,10 @@ describe('Mongoose API', function() {
   const StickerSchema = new Schema(Models.Sticker);
   const Sticker = mp.model('Sticker', StickerSchema);
 
+  before(function(d) {
+    knex('sticker').where('label', 'test123').del().then(x=>d());
+  });
+
   it('find', function(d) {
     Sticker.find().exec((e, x) => {
       console.log('found find', x.length);
@@ -213,6 +217,26 @@ describe('Mongoose API', function() {
       assert(!!x);
       d();
     });
+  });
+
+  it('unique check', function(d) {
+    const s = new Sticker({ label: 'test123' });
+    s.save((e, x) => {
+      assert.isNotNull(e, 'error: ' + e);
+      assert(e.toString().indexOf('duplicate key value violates') > -1);
+      assert(!x);
+      d();
+    });  
+  });
+
+  it('required check', function(d) {
+    const s = new Sticker({ label: null });
+    s.save((e, x) => {
+      assert.isNotNull(e, 'error: ' + e);
+      assert(e.toString().indexOf('violates not-null constraint') > -1);
+      assert(!x);
+      d();
+    });  
   });
 
   it('findByID', function(d) {
