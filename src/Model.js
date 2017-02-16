@@ -34,7 +34,7 @@ function makeInstanceProxy(model) {
 // Model instance
 class ModelInstance {
   constructor(Schema, vobj, findByID) {
-    this.vobj = vobj;
+    this.vobj = removeInvalidFields(Schema, vobj);
     this.Schema = Schema;
     this.findByID = findByID;
     if (!this.Schema.table) throw new Error('invalid table');
@@ -48,9 +48,11 @@ class ModelInstance {
   toObject() {
     return this.vobj;
   }
+  // delete this entry from the db
   delete(cb) {
     return remove(cb);
   } 
+  // get latest changes from db to model
   update(y) {
     return this.findByID(this.vobj._id).exec().then(x => {
       _.forEach(x.vobj, (v,k) => this.vobj[k] = v);
@@ -75,9 +77,10 @@ class ModelInstance {
   // Save performs an upsert operation
   save(cb) {
     const s = this.Schema;
-    let vobj = this.vobj;
-    vobj = removeInvalidFields(s, vobj);
-    vobj = correctJsonFields(s, vobj);
+    // sanitize the base vobj
+    this.vobj = removeInvalidFields(s, this.vobj);
+    // Modify vobj for this call
+    let vobj = correctJsonFields(s, this.vobj);
 
     if (!vobj) throw new Error('empty object to save');
     const removedJoins = _(vobj).pickBy((v, k) => !s.joins[k]).value(); // remove joins
@@ -259,11 +262,14 @@ function correctJsonFields(_schema, obj) {
 }
 
 // Remove fields that are not specified in the schema
+// Modifies in-place obj
 function removeInvalidFields(_schema, obj) {
   const r = _(obj)
     .pickBy((v, k) => k !== '_id' && !_schema.props[k] && !_schema.joins[k])
     .keys()
     .value();
+  
+  _.forEach(r, k => delete obj[k]);
 
-  return _.omit(obj, ...r);
+  return obj; //_.omit(obj, ...r);
 }
