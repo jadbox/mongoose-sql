@@ -75,7 +75,8 @@ if (e.PSQL_INIT) {
       host: e.DB_HOST || '127.0.0.1',
       user: e.DB_USER || 'jonathan.dunlap',
       password: e.DB_PASSWORD || '',
-      database: e.DB_DATABASE || 'test'
+      database: e.DB_DATABASE || 'test',
+      port: e.DB_PORT || 5432
     }
   });
 }
