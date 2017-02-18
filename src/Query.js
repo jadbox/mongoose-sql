@@ -44,7 +44,7 @@ module.exports = class Query {
     return this.findByID(params);
   }
   find(params) {
-    findOne(params);
+    this.findOne(params);
     this.justOne = false;
     return this;
   }
