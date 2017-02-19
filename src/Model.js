@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const DEBUG = process.env.DEBUG || 1;
+const DEBUG = process.env.DEBUG || 0;
 const Query = require('./Query');
 const core = require('./mapschema');
 const Promise = require('q').Promise;
@@ -37,7 +37,11 @@ class ModelInstance {
     this.vobj = removeInvalidFields(Schema, vobj);
     this.Schema = Schema;
     this.findByID = findByID;
+    this._knex = null;
     if (!this.Schema.table) throw new Error('invalid table');
+  }
+  get knex() {
+    return this._knex;
   }
   toJSON() {
     return this.vobj;
@@ -131,7 +135,7 @@ class ModelInstance {
   }
 
   setKnex(db) {
-    this.knex = db;
+    this._knex = db;
     return this;
   }
 }
@@ -153,6 +157,7 @@ function modelFactory(name, schema) {
     'findByID',
     'findById',
     'setKnex',
+    'knex',
     'findOne',
     'where'
   ];
@@ -168,19 +173,23 @@ class Model {
   constructor(name, schema) {
     this.name = name;
     this.schema = schema;
+    this._knex = null;
     if (DEBUG) console.log('-- parsing ' + name + ' --');
   }
   create(vobj) {
     const m = new ModelInstance(this._schema, vobj, this.findByID.bind(this) );
-    m.setKnex(this.knex);
+    m.setKnex(this._knex);
     const proxyModel = makeInstanceProxy(m);
     return proxyModel;
+  }
+  knex(table) {
+    return this._knex(table ? table : this.schema.table);
   }
   where(params) {
     return this.find(params);
   }
   find(params) {
-    return new Query(this, params, false, this.knex);
+    return new Query(this, params, false, this._knex);
   }
   // Returns models
   findByID(id) {
@@ -191,15 +200,14 @@ class Model {
     return this.findByID(id);
   }
   findOne(params) {
-    return new Query(this, params, true, this.knex);
+    return new Query(this, params, true, this._knex);
   }
   remove(vobj, cb) {
     return this.create(vobj).remove(cb);
   }
   setKnex(db) {
-    this.knex = db;
-    // if(_.toLower(this.name)==='package') console.log('==', this.name, this.schema.obj);
-    this._schema = core.parse(this.name, this.schema.obj, this.knex);
+    this._knex = db;
+    this._schema = core.parse(this.name, this.schema.obj, this._knex);
     return this;
   }
 }

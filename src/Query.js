@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const DEBUG = process.env.DEBUG || 1;
+const DEBUG = process.env.DEBUG || 0;
 
 // many to many
 function makeAgg(knex, k, field) {

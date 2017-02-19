@@ -85,6 +85,7 @@ module.exports = exports = {
   Schema: Schema,
   model: modelNew,
   getKnex: () => knex,
+  get knex() { return knex },
   init: connect,
   connect: connect,
   createConnection: connect,
