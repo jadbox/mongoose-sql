@@ -60,7 +60,7 @@ module.exports = class Query {
     return this;
   }
   select(field) {
-    if (field.charAt(0) === '-') this.excludeFields.push(field);
+    if (field.charAt(0) === '-') this.excludeFields.push(field.substring(1));
     else throw new Error('additional select field', field);
     return this;
     // TODO: secondary select

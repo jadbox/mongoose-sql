@@ -356,6 +356,16 @@ describe('Mongoose API', function() {
     });
   });
 
+  it('negative select', function(d) {
+    Package.findByID(complexPackageID).select('-videoExamples').select('-category').exec((e, x) => {
+      assert(e === null);
+      assert(!!x._id);
+      assert(!x.videoExamples);
+      assert(!x.category);
+      d();
+    });
+  });
+
   it('findByID with one to many #1', function(d) {
     Package.findByID(complexPackageID).populate('category').exec((e, x) => {
       assert(e === null);
