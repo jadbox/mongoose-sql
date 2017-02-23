@@ -55,7 +55,7 @@ function modelNew(name, schema) {
 
 // Sequelize init, returns knex instance
 function connect(params) {
-  if (DEBUG) console.log('sequelize lib init');
+  // if (DEBUG) console.log('sequelize lib init');
   if (!knex) {
     knex = Knex(params);
     if (DEBUG) knex.raw('select 1+1 as result').then(function() {

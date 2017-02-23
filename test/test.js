@@ -337,14 +337,21 @@ describe('Mongoose API', function() {
 
   it('populate many to many', function(d) {
     Package.findByID(complexPackageID).populate('recommendedPackages').exec((e, x) => {
-      //console.log('populate find', x.recommendedPackages);
-      //console.log('populate find', x.category);
-      //console.log(_.keys(x));
       assert(e === null);
       assert(!!x.recommendedPackages.length > 0);
       assert(!!x.recommendedPackages[0].name);
       assert(!!x.recommendedPackages[0]._id);
       //assert(!!x.featureSticker);
+      d();
+    });
+  });
+
+  it('negative populate', function(d) {
+    Package.findByID(complexPackageID).populate('-videoExamples', '-category').exec((e, x) => {
+      assert(e === null);
+      assert(!!x._id);
+      assert(!x.videoExamples);
+      assert(!x.category);
       d();
     });
   });

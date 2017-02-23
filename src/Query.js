@@ -29,6 +29,7 @@ module.exports = class Query {
     this.ops = [];
     this.justOne = justOne;
     this._i = ++i;
+    this.excludeFields = [];
   }
   findOne(params) {
     if (!isNaN(parseFloat(this.params))) this.params = params;
@@ -59,16 +60,22 @@ module.exports = class Query {
     return this;
   }
   select(field) {
-    if (field.charAt(0) === '-') console.log('TODO select by', field);
+    if (field.charAt(0) === '-') this.excludeFields.push(field);
     else throw new Error('additional select field', field);
     return this;
     // TODO: secondary select
   }
   populate(model1, model2) {
     if (Array.isArray(model1)) this.populateFields.push(...model1);
-    else this.populateFields.push(model1);
+    else {
+      if(model1.indexOf('-') === 0) this.excludeFields.push(model1.substring(1));
+      else this.populateFields.push(model1);
+    }
 
-    if (model2) this.populateFields.push(model2);
+    if (model2) {
+      if(model2.indexOf('-') === 0) this.excludeFields.push(model2.substring(1));
+      else this.populateFields.push(model2);
+    }
     return this;
   }
   exec(cb) {
@@ -81,9 +88,14 @@ module.exports = class Query {
     const one = makeRow.bind(null, this.knex);
 
     // aggregate fields with any needed join table columns
-    const extra = [
-      _schema.table + '.*',
-      ..._(this.schema.refs)
+    let fields = ['*']
+    if(this.excludeFields.length > 0) {
+      fields = _.without(_.keys(_schema.props), ...this.populateFields, ...this.excludeFields);
+      fields.push('_id');
+    }
+    const fieldsToTable = _.map(fields, f => _schema.table + '.' + f);
+
+    const linkedRefs = _(this.schema.refs)
         .map((f, K) => {
           const fullJoin = _.includes(this.populateFields, f);
           if (_schema.joins[f]) {
@@ -98,7 +110,11 @@ module.exports = class Query {
           throw new Error('unlisted field ' + f);
         }*/
         })
-        .filter(null)
+        .filter(null);
+
+    const extra = [
+      ...fieldsToTable,
+      ...linkedRefs,
     ];
 
     // Select fields
