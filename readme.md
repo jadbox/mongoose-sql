@@ -53,7 +53,7 @@ simba.remove(function() {
 var mongoose = require("mongoose"); // instance Mongoose
 var Cat_Schema_Mongo = new mongoose.Schema(CatModel); // make a mongoose schema
 var Cat_Mongo = mongoose.model("Cat", Cat_Schema_Mongo); // make a mongoose model
-db.migreateSchemas([Cat_Mongo]).then(function() { // call migreateSchemas with model
+db.migrateSchemas([Cat_Mongo]).then(function() { // call migrateSchemas with model
     console.log("moved data to PostgreSQL from Mongoose");
 });
 ```
